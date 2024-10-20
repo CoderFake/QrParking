@@ -20,7 +20,7 @@ services:
         python manage.py makemigrations &&
         python manage.py migrate &&
         python manage.py collectstatic --noinput --no-post-process &&
-        chown -R www-data:www-data /home/smartparking/staticfiles &&
+        chown -R www-data:www-data /home/QrParking/smartparking/staticfiles &&
         python create_superuser_and_site.py &&
         python manage.py runserver 0.0.0.0:8000
       "
