@@ -2,17 +2,17 @@
 FROM python:3.12
 
 # Create directory
-RUN mkdir -p /home/smartparking/smartparking
+RUN mkdir -p /home/QrParking/smartparking
 
 # Set work directory
-WORKDIR /home/smartparking/smartparking
+WORKDIR /home/QrParking/smartparking
 
 # Install dependencies
-ADD requirements.txt /home/smartparking/smartparking
+ADD requirements.txt /home/QrParking/smartparking
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
-ADD . /home/smartparking/smartparking
+ADD . /home/QrParking/smartparking
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1

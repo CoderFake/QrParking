@@ -11,8 +11,8 @@ services:
     ports:
       - "${ADMIN_PORT}:8000"
     volumes:
-      - "./smartparking:/home/smartparking/smartparking"
-      - "./staticfiles:/home/smartparking/staticfiles"
+      - "./smartparking:/home/QrParking/smartparking"
+      - "./staticfiles:/home/QrParking/smartparking/staticfiles"
     depends_on:
       - db
     command: >
@@ -36,7 +36,7 @@ services:
     environment:
       - ENVIRONMENT=dev
     volumes:
-      - "./api:/home/smartparking/api"
+      - "./api:/home/QrParking/api"
     depends_on:
       - db
     command: >
