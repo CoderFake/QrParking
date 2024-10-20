@@ -78,5 +78,5 @@ services:
     restart: always
 
 volumes:
-  db_test_volume:
+  db_volume:
   db_stg_volume:
