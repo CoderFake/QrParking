@@ -1,0 +1,209 @@
+{% extends "webapp/layouts/base.html" %}
+
+{% load static %}
+{% block title %} Qr Code {% endblock %}
+
+{% block stylesheets %}
+    <link type="text/css" rel="stylesheet" href="{% static 'webapp/assets/css/payment.css' %}">
+{% endblock stylesheets %}
+
+{% block content %}
+    <main class="container-fluid p-0 h-100 d-flex justify-content-center align-items-start">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-dismissible d-none" role="alert">
+                    <div class="message-tag">{{ message.tags }}</div>
+                    <div class="message">{{ message }}</div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="container-fluid mt-3 p-2 pt-0 align-items-start">
+            <div class="row h-100">
+                <div class="col-12 col-md-6 d-flex justify-content-center justify-content-md-start align-items-center">
+                    <h2 class="m-0 text-primary text-uppercase">{{ description }}</h2>
+                </div>
+                <div class="col-12 col-md-6 d-flex justify-content-center justify-content-md-end align-items-center">
+                    <div class="border-0 rounded-3 bg-white d-flex
+                        {% if type != "daily-ticket" %}
+                            justify-content-end
+                        {% else %}
+                            justify-content-start
+                        {% endif %} setting w-100 w-sm-80" style="height:40px">
+                        <a href="?query={% if type == "daily-ticket" %}month-ticket{% else %}daily-ticket{% endif %}"
+                           class="setting-button border-0 bg-warning rounded-3 w-50 h-100 text-white text-center align-content-center">
+                            {% if type == "daily-ticket" %}
+                                daily ticket
+                            {% else %}
+                                month ticket
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {% if type == "daily-ticket" %}
+                <section class="vh-100 gradient-custom-2">
+                    <div class="container py-5 h-100">
+                        <div class="row d-flex justify-content-center align-items-center h-100">
+                            <form class="col-md-10 col-lg-8 col-xl-6" method="POST" action="{% url 'ticket_payment' %}">
+                                {% csrf_token %}
+                                <div class="card card-stepper" style="border-radius: 16px;">
+                                    <div class="card-header p-4">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <p class="text-muted mb-2"> Order ID <span
+                                                        class="fw-bold text-body">{{ order_id }}</span>
+                                                </p>
+                                                <p class="text-muted mb-0"> Place On <span
+                                                        class="fw-bold text-body">{% now "d, F Y" %}</span></p>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0"><a href="#">Parking ticket</a></h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        <div class="d-flex flex-row mb-4 pb-2">
+                                            <div class="flex-fill">
+                                                <h5 class="bold">{{ description }}</h5>
+                                                <p class="text-muted"> Qt: 1 item</p>
+                                                <div class="form-group">
+                                                    <label class="form-label" for="price">Select denomination</label>
+                                                    <select class="form-control" name="price" id="price">
+                                                        <option value="">-- Select --</option>
+                                                        <option value="10000">10,000 VND</option>
+                                                        <option value="20000">20,000 VND</option>
+                                                        <option value="50000">50,000 VND</option>
+                                                        <option value="100000">100,000 VND</option>
+                                                        <option value="200000">200,000 VND</option>
+                                                        <option value="500000">500,000 VND</option>
+                                                    </select>
+                                                    <input class="d-none" name="type" value="daily-ticket">
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <img class="align-self-center img-fluid"
+                                                     src="{% static 'webapp/assets/img/ticket.png' %}"
+                                                     width="250">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer p-4">
+                                        <div class="d-flex justify-content-center">
+                                            <button type="submit"
+                                                    class="fw-normal mb-0 pl-3 pr-3 btn btn-primary rounder-3">Pay
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+            {% else %}
+
+            {% endif %}
+        </div>
+        <div class="container-fluid mt-3 p-2 pt-0 align-items-start">
+            <div class="row h-100">
+                <div class="col-12 col-md-6 d-flex justify-content-center justify-content-md-start align-items-center">
+                    <h2 class="m-0 text-primary text-uppercase">{{ description }}</h2>
+                </div>
+                <div class="col-12 col-md-6 d-flex justify-content-center justify-content-md-end align-items-center">
+                    <div class="border-0 rounded-3 bg-white d-flex
+                        {% if type != "month-ticket" %}
+                            justify-content-end
+                        {% else %}
+                            justify-content-start
+                        {% endif %} setting w-100 w-sm-80" style="height:40px">
+                        <a href="?query={% if type == "daily-ticket" %}month-ticket{% else %}daily-ticket{% endif %}"
+                           class="setting-button border-0 bg-warning rounded-3 w-50 h-100 text-white text-center align-content-center">
+                            {% if type == "daily-ticket" %}
+                                daily ticket
+                            {% else %}
+                                month ticket
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            {% if type == "daily-ticket" %}
+                <section class="vh-100 gradient-custom-2">
+                    <div class="container py-5 h-100">
+                        <div class="row d-flex justify-content-center align-items-center h-100">
+                            <form class="col-md-10 col-lg-8 col-xl-6" method="POST" action="{% url 'ticket_payment' %}">
+                                {% csrf_token %}
+                                <div class="card card-stepper" style="border-radius: 16px;">
+                                    <div class="card-header p-4">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <p class="text-muted mb-2"> Order ID <span
+                                                        class="fw-bold text-body">{{ order_id }}</span>
+                                                </p>
+                                                <p class="text-muted mb-0"> Place On <span
+                                                        class="fw-bold text-body">{% now "d, F Y" %}</span></p>
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0"><a href="#">Parking ticket</a></h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        <div class="d-flex flex-row mb-4 pb-2">
+                                            <div class="flex-fill">
+                                                <h5 class="bold">{{ description }}</h5>
+                                                <p class="text-muted"> Qt: 1 item</p>
+                                                <div class="form-group">
+                                                    <label class="form-label" for="price">Select denomination</label>
+                                                    <select class="form-control" name="price" id="price">
+                                                        <option value="">-- Select --</option>
+                                                        <option value="10000">10,000 VND</option>
+                                                        <option value="20000">20,000 VND</option>
+                                                        <option value="50000">50,000 VND</option>
+                                                        <option value="100000">100,000 VND</option>
+                                                        <option value="200000">200,000 VND</option>
+                                                        <option value="500000">500,000 VND</option>
+                                                    </select>
+                                                    <input class="d-none" name="type" value="daily-ticket">
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <img class="align-self-center img-fluid"
+                                                     src="{% static 'webapp/assets/img/ticket.png' %}"
+                                                     width="250">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer p-4">
+                                        <div class="d-flex justify-content-center">
+                                            <button type="submit"
+                                                    class="fw-normal mb-0 pl-3 pr-3 btn btn-primary rounder-3">Pay
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+            {% else %}
+
+            {% endif %}
+        </div>
+
+    </main>
+
+{% endblock content %}
+
+{% block javascripts %}
+    <script>
+        $(document).ready(function () {
+            $('.alert-dismissible').each(function () {
+                createToast($(this).find('.message-tag').text(), $(this).find('.message').text());
+                $(this).remove();
+            });
+        })
+    </script>
+{% endblock javascripts %}
