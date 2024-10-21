@@ -8,4 +8,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("webapp.urls")),
     path("account/", include("account.urls")),
+    path("payment/", include("payment.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
