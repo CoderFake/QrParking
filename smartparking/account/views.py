@@ -1,4 +1,5 @@
 import hashlib
+import json
 from datetime import timedelta
 from io import BytesIO
 import qrcode
@@ -195,6 +196,62 @@ def verify_email(request, uid, token):
     else:
         messages.success(request, 'The verification link is invalid or has expired!')
     return redirect('account:login')
+
+
+def signup(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            username = data.get('username')
+            id_token = data.get('idToken')
+
+            decoded_token = auth.verify_id_token(id_token)
+            login_id = decoded_token.get("sub", "")
+            signin_method = decoded_token.get("firebase", {}).get("sign_in_provider", "")
+
+            if email != decoded_token.get("email", ""):
+                return JsonResponse({"status": "error", "message": "Email does not match!"}, status=400)
+
+            if User.objects.filter(login_id=login_id).exists():
+                return JsonResponse({"status": "error", "message": "User already exists!"}, status=400)
+            try:
+                with transaction.atomic():
+                    extra_fields = {}
+
+                    extra_fields['login_id'] = login_id
+                    extra_fields['signin_method'] = signin_method
+                    user = User.objects.create_user(
+                        email=email,
+                        username=username,
+                        password=None,
+                        **extra_fields
+                    )
+
+                    send_email(request, user)
+
+                    messages.success(request, "User created successfully!")
+
+            except Exception as e:
+                logger.error(e)
+                return JsonResponse({"status": "error", "message": "Cannot create user!"}, status=400)
+
+            return JsonResponse({"status": "success"}, status=200)
+
+        except Exception as e:
+            logger.error(e)
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+    context = {
+        'firebaseConfig': settings.FIREBASE_CONFIG
+    }
+    return render(request, 'webapp/accounts/register.html', context=context)
+
+
+@login_required
+def account_logout(request):
+    logout(request)
+    return render(request, 'webapp/home/index.html')
 
 
 @login_required
