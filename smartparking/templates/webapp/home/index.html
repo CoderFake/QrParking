@@ -1,0 +1,19 @@
+{% extends "webapp/layouts/base.html" %}
+
+{%  load static  %}
+{% block title %} home {% endblock %}
+
+{% block stylesheets %}{% endblock stylesheets %}
+
+{% block content %}
+
+    <main class="h-100">
+        <!-- Hero -->
+        <section class="h-100 section-header overflow-hidden pt-7 pt-lg-8 pb-9 pb-lg-12 bg-primary text-white">
+            <div class="container d-flex justify-content-center align-content-center" >
+                <img src="{% static 'webapp/assets/img/sp-logo.png' %}" style="width: 70%; height: 70%">
+            </div>
+        </section>
+    </main>
+{% endblock %}
+
