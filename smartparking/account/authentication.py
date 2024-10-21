@@ -33,7 +33,7 @@ class FirebaseAuthentication(BaseAuthentication):
             id_token = id_token.split('Bearer ')[1]
 
         try:
-            decoded_token = auth.verify_id_token(id_token)
+            decoded_token = auth.verify_id_token(id_token, clock_skew_seconds=5)
         except auth.ExpiredIdTokenError:
             raise AuthenticationFailed('Token has expired')
         except auth.InvalidIdTokenError:

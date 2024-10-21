@@ -1,7 +1,11 @@
 import hashlib
 import json
+import os
 from datetime import timedelta
 from io import BytesIO
+from time import sleep
+from urllib.parse import urlparse
+
 import qrcode
 import requests
 from PIL.Image import Image
@@ -79,7 +83,7 @@ class FirebaseLogin(APIView):
             return Response({"status": "error", "message": "No idToken provided."}, status=400)
 
         try:
-            decoded_token = auth.verify_id_token(id_token)
+            decoded_token = auth.verify_id_token(id_token, clock_skew_seconds=5)
             email = decoded_token.get("email")
             login_id = decoded_token.get("sub", "")
             username = decoded_token.get("name", "")
@@ -101,10 +105,21 @@ class FirebaseLogin(APIView):
                         if picture_url:
                             response = requests.get(picture_url, stream=True)
                             if response.status_code == 200:
-                                s3 = S3Client()
-                                filename = f"{login_id}.jpg"
-                                s3.write(f"users/{filename}", response.raw.read(), public=True)
-                                extra_fields['picture_key'] = f"users/{filename}"
+                                try:
+                                    parsed_url = urlparse(picture_url)
+                                    filename, file_extension = os.path.splitext(os.path.basename(parsed_url.path))
+
+                                    s3 = S3Client()
+                                    full_filename = f"{login_id}{file_extension}"
+
+                                    with BytesIO(response.raw.read()) as img_data:
+                                        s3.write(f"users/{full_filename}", img_data.getvalue(), public=True)
+                                        extra_fields['picture_key'] = f"users/{full_filename}"
+
+                                except Exception as e:
+                                    logger.error(f"Error uploading profile picture: {e}")
+                                    return Response({"status": "error", "message": "Error uploading profile picture."},
+                                                    status=500)
 
                         extra_fields['status'] = "active"
                         extra_fields['login_id'] = login_id
