@@ -1,5 +1,5 @@
+import logging
 import os
-import socket
 from pathlib import Path
 from django.contrib import messages
 from dotenv import load_dotenv
@@ -56,6 +56,7 @@ INSTALLED_APPS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
+        'account.authentication.FirebaseAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
@@ -70,6 +71,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "account.authentication.FirebaseAuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -77,6 +79,7 @@ MIDDLEWARE = [
 
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
+    'account.authentication.FirebaseAuthentication',
 )
 AUTH_USER_MODEL = 'account.User'
 
@@ -151,6 +154,7 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Ho_Chi_Minh"
 
 USE_I18N = True
+USE_L10N = True
 
 USE_TZ = True
 
@@ -216,19 +220,10 @@ MESSAGE_TAGS = {
     messages.ERROR: "error",
 }
 
-if environment == "dev":
-    MINIO_ACCESS_KEY = os.environ.get("MINIO_ACCESS_KEY")
-    MINIO_SECRET_KEY = os.environ.get("MINIO_SECRET_KEY")
-    MINIO_ENDPOINT = os.environ.get("MINIO_ENDPOINT")
-    MINIO_ENDPOINT_PUBLIC = os.environ.get("MINIO_ENDPOINT_PUBLIC")
-    BUCKET_NAME = os.environ.get("MINIO_BUCKET_NAME")
-    MINIO_STORAGE_USE_HTTPS = False
-
-else:
-    AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
-    AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
-    BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
-    AWS_REGION = os.getenv("AWS_REGION")
+AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
+AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
+BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
+AWS_REGION = os.getenv("AWS_REGION")
 
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = os.getenv('EMAIL_PORT')
