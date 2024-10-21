@@ -8,4 +8,5 @@ urlpatterns = [
     path('verify-email/<uid>/<token>/', views.verify_email, name='verify_email'),
 
     path('profile/', views.profile, name='profile'),
+    path('qr-code/', views.get_qrcode, name='qrcode'),
 ]

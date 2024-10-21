@@ -1,7 +1,11 @@
-
+import hashlib
 import json
+from datetime import timedelta
+from io import BytesIO
+import qrcode
 import requests
-
+from PIL.Image import Image
+from django.contrib.auth.hashers import make_password
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.contrib import messages
@@ -11,6 +15,7 @@ from django.urls import reverse
 from django.core.mail import EmailMessage
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.tokens import default_token_generator
+from django.utils.crypto import get_random_string
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
 from django.contrib.sites.shortcuts import get_current_site
@@ -25,6 +30,11 @@ import firebase_admin
 from firebase_admin import credentials, auth
 import boto3
 from botocore.client import Config
+from django.utils import timezone
+from .models import QrCode
+
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
 
 import logging
 
@@ -330,3 +340,235 @@ def s3_delete(file_key):
         return False
 
 
+def s3_save_file(file, file_name, file_extension):
+    file.seek(0)
+
+    s3 = get_s3_resource()
+    s3.Bucket(settings.BUCKET_NAME).upload_fileobj(
+        file,
+        f"qrcodes/{file_name}.{file_extension}",
+        ExtraArgs={'ContentType': "image/png"}
+    )
+    return f"qrcodes/{file_name}.{file_extension}"
+
+
+def generate_key_from_password(password):
+    hash_func = getattr(hashlib, settings.QRCODE_HASH)
+    return hash_func(password.encode()).digest()
+
+
+def encrypt_data(data, key):
+    cipher = AES.new(key, AES.MODE_CBC)
+    iv = cipher.iv
+    encrypted_data = cipher.encrypt(pad(data.encode('utf-8'), AES.block_size))
+    return iv + encrypted_data
+
+
+def qrcode_generate(content):
+
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_L,
+        box_size=30,
+        border=4,
+    )
+
+    qr.add_data(content)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white").convert('RGB')
+
+    buffer = BytesIO()
+
+    img = img.resize((900, 900), Image.Resampling.LANCZOS)
+
+    img.save(buffer, format="PNG")
+
+    file_name = f"qr_code_{get_random_string(8)}"
+    file_extension = "png"
+
+    buffer.seek(0)
+    s3_path = s3_save_file(buffer, file_name, file_extension)
+
+    return file_name, s3_path
+
+
+def is_ajax(request):
+    return request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest'
+
+
+def get_presigned_url(bucket_name, object_key, expiration=600):
+
+    s3 = get_s3_client()
+
+    url = s3.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': bucket_name, 'Key': object_key},
+        ExpiresIn=expiration
+    )
+    return url
+
+
+@login_required
+def get_qrcode(request):
+    try:
+        user_qrcode = QrCode.objects.get(user=request.user)
+
+        if request.method == "POST" and is_ajax(request):
+            otp_key = request.POST.get("otp", "")
+
+            if (timezone.now() - user_qrcode.rendered_at).total_seconds() > 600:
+                if not QrCode.verify_otp(user_qrcode, otp_key):
+                    return JsonResponse({"status": "error", "message": "OTP verification is invalid!"}, status=400)
+
+            if request.POST.get("type"):
+                if request.POST.get("type") == "new_qr":
+                    key_password = settings.QRCODE_SECRET_KEY
+                    key = generate_key_from_password(key_password)
+
+                    now = timezone.now()
+
+                    key_code = now.strftime("%Y%m%d%H%M%S%f")
+
+                    data = {
+                        'key_code': str(key_code),
+                        'user_id': str(user_qrcode.user.id)
+                    }
+
+                    try:
+                        if user_qrcode.key_image:
+                            s3 = get_s3_client()
+                            s3.delete_object(Bucket=settings.BUCKET_NAME, Key=user_qrcode.key_image)
+
+                        content = str(encrypt_data(str(data), key))
+                        file_name, s3_path = qrcode_generate(content)
+
+                        if user_qrcode.key_image:
+                            delete_success = s3_delete(user_qrcode.key_image)
+                            if not delete_success:
+                                return JsonResponse(
+                                    {"status": "error", "message": "An error occurred while deleting the old QR code."},
+                                    status=400)
+
+                    except Exception as e:
+                        logger.error(e)
+                        return JsonResponse({"status": "error", "messages": "An error occurred"}, status=400)
+
+                    user_qrcode.key_image = s3_path
+                    user_qrcode.key_code = str(key_code)
+                    user_qrcode.content = content
+                    user_qrcode.updated_at = now
+                    user_qrcode.rendered_at = now
+                    user_qrcode.save()
+
+                    image_url = get_presigned_url(settings.BUCKET_NAME, s3_path, expiration=600)
+
+                    messages.success(request, "New QR code generated successfully!")
+
+                    return JsonResponse({
+                        "status": "success",
+                        "image_url": image_url
+                    }, status=200)
+
+                elif request.POST.get("type") == "hidden":
+                    user_qrcode.rendered_at = timezone.now() - timedelta(minutes=11)
+                    user_qrcode.save()
+                    return JsonResponse({"status": "success"}, status=200)
+
+                else:
+                    return JsonResponse({"status": "error", "message": "Invalid request!"}, status=400)
+
+            else:
+                try:
+                    image_url = get_presigned_url(settings.BUCKET_NAME, user_qrcode.key_image, expiration=600)
+                    user_qrcode.rendered_at = timezone.now()
+                    user_qrcode.save()
+                except Exception as e:
+                    logger.error(e)
+                    return JsonResponse({"status": "error", "message": "An error occurred: " + str(e)}, status=400)
+
+                return JsonResponse({"status": "success", "image_url": image_url}, status=200)
+        elif request.method == "POST":
+            s3 = get_s3_client()
+
+            try:
+                response = s3.get_object(Bucket=settings.BUCKET_NAME, Key=user_qrcode.key_image)
+                file_content = response['Body'].read()
+
+                response = HttpResponse(file_content, content_type='image/png')
+                response['Content-Disposition'] = f'attachment; filename="{user_qrcode.key_code}.png"'
+
+                user_qrcode.rendered_at = timezone.now()
+                user_qrcode.save()
+
+                return response
+
+            except Exception as e:
+                logger.error(e)
+                messages.error(request, f"Could not download the file: {str(e)}")
+                redirect('qrcode')
+
+    except QrCode.DoesNotExist:
+        if request.method == "POST":
+
+            otp = request.POST.get("otp")
+            confirm_otp = request.POST.get("confirm_otp")
+
+            if otp and confirm_otp and otp == confirm_otp and len(otp) == 6 and otp.isdigit():
+                try:
+                    key_password = settings.QRCODE_SECRET_KEY
+                    key = generate_key_from_password(key_password)
+
+                    now = timezone.now()
+                    key_code = now.strftime("%Y%m%d%H%M%S%f")
+
+                    data = {
+                        'key_code': str(key_code),
+                        'user_id': str(request.user.id)
+                    }
+
+                    content = str(encrypt_data(str(data), key))
+                    file_name, s3_path = qrcode_generate(content)
+
+                    user_qrcode = QrCode.objects.create(
+                        user=request.user,
+                        key_image=s3_path,
+                        key_code=key_code,
+                        content=content,
+                        password_otp=make_password(otp),
+                        created_at=now,
+                        updated_at=now,
+                        rendered_at=now
+                    )
+
+                    image_url = get_presigned_url(settings.BUCKET_NAME, s3_path, expiration=600)
+
+                    messages.success(request, "New QR code generated successfully!")
+
+                    return JsonResponse({
+                        "status": "success",
+                        "image_url": image_url
+                    }, status=200)
+
+                except Exception as e:
+                    logger.error(e)
+                    return JsonResponse({"status": "error", "message": f"An error occurred: {str(e)}"}, status=400)
+            else:
+                return JsonResponse({"status": "error", "message": "Invalid OTP!"}, status=400)
+
+    user_qrcode = QrCode.objects.filter(user=request.user).first()
+
+    qrcode_create = False
+    context = {"qrcode_create": qrcode_create}
+
+    if user_qrcode:
+        qrcode_create = True
+        context = {
+            "qrcode_create": qrcode_create,
+            "qrcode_id": user_qrcode.key_code,
+            "created_at": user_qrcode.created_at,
+            "modified_at": user_qrcode.updated_at,
+            "rendered_at": (timezone.now() - user_qrcode.rendered_at).total_seconds() * 1000
+        }
+
+    return render(request, "webapp/accounts/qrcode.html", context=context)
