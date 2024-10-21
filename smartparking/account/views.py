@@ -1,5 +1,4 @@
 import hashlib
-import json
 from datetime import timedelta
 from io import BytesIO
 import qrcode
@@ -26,10 +25,6 @@ from rest_framework.permissions import AllowAny
 from rest_framework.views import APIView
 from rest_framework.renderers import TemplateHTMLRenderer, JSONRenderer
 from rest_framework.response import Response
-import firebase_admin
-from firebase_admin import credentials, auth
-import boto3
-from botocore.client import Config
 from django.utils import timezone
 from .models import QrCode
 
@@ -37,9 +32,12 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad
 
 import logging
+from webapp.utils import S3Client
+
+import firebase_admin
+from firebase_admin import credentials, auth
 
 logger = logging.getLogger(__name__)
-
 
 if not firebase_admin._apps:
     cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS)
@@ -52,28 +50,6 @@ def redirect_if_authenticated(view_func):
             return redirect("index")
         return view_func(request, *args, **kwargs)
     return wrapper
-
-
-def get_s3_resource():
-    return boto3.resource(
-        "s3",
-        endpoint_url=settings.MINIO_ENDPOINT if settings.ENVIRONMENT == "dev" else None,
-        aws_access_key_id=settings.MINIO_ACCESS_KEY if settings.ENVIRONMENT == "dev" else settings.AWS_ACCESS_KEY,
-        aws_secret_access_key=settings.MINIO_SECRET_KEY if settings.ENVIRONMENT == "dev" else settings.AWS_SECRET_KEY,
-        region_name=None if settings.ENVIRONMENT == "dev" else settings.AWS_REGION,
-        config=Config(signature_version="s3v4"),
-    )
-
-
-def get_s3_client():
-    return boto3.client(
-        "s3",
-        endpoint_url=settings.MINIO_ENDPOINT_PUBLIC if settings.ENVIRONMENT == "dev" else None,
-        aws_access_key_id=settings.MINIO_ACCESS_KEY if settings.ENVIRONMENT == "dev" else settings.AWS_ACCESS_KEY,
-        aws_secret_access_key=settings.MINIO_SECRET_KEY if settings.ENVIRONMENT == "dev" else settings.AWS_SECRET_KEY,
-        region_name=None if settings.ENVIRONMENT == "dev" else settings.AWS_REGION,
-        config=Config(signature_version="s3v4"),
-    )
 
 
 class FirebaseLogin(APIView):
@@ -117,7 +93,6 @@ class FirebaseLogin(APIView):
                 user.signin_method = signin_method
                 user.save()
 
-
             except User.DoesNotExist:
                 try:
                     with transaction.atomic():
@@ -125,13 +100,9 @@ class FirebaseLogin(APIView):
                         if picture_url:
                             response = requests.get(picture_url, stream=True)
                             if response.status_code == 200:
-                                s3 = get_s3_resource()
+                                s3 = S3Client()
                                 filename = f"{login_id}.jpg"
-                                s3.Bucket(settings.BUCKET_NAME).upload_fileobj(
-                                    response.raw,
-                                    f"users/{filename}",
-                                    ExtraArgs={'ContentType': response.headers['Content-Type']}
-                                )
+                                s3.write(f"users/{filename}", response.raw.read(), public=True)
                                 extra_fields['picture_key'] = f"users/{filename}"
 
                         extra_fields['status'] = "active"
@@ -226,62 +197,6 @@ def verify_email(request, uid, token):
     return redirect('account:login')
 
 
-def signup(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            email = data.get('email')
-            username = data.get('username')
-            id_token = data.get('idToken')
-
-            decoded_token = auth.verify_id_token(id_token)
-            login_id = decoded_token.get("sub", "")
-            signin_method = decoded_token.get("firebase", {}).get("sign_in_provider", "")
-
-            if email != decoded_token.get("email", ""):
-                return JsonResponse({"status": "error", "message": "Email does not match!"}, status=400)
-
-            if User.objects.filter(login_id=login_id).exists():
-                return JsonResponse({"status": "error", "message": "User already exists!"}, status=400)
-            try:
-                with transaction.atomic():
-                    extra_fields = {}
-
-                    extra_fields['login_id'] = login_id
-                    extra_fields['signin_method'] = signin_method
-                    user = User.objects.create_user(
-                        email=email,
-                        username=username,
-                        password=None,
-                        **extra_fields
-                    )
-
-                    send_email(request, user)
-
-                    messages.success(request, "User created successfully!")
-
-            except Exception as e:
-                logger.error(e)
-                return JsonResponse({"status": "error", "message": "Cannot create user!"}, status=400)
-
-            return JsonResponse({"status": "success"}, status=200)
-
-        except Exception as e:
-            logger.error(e)
-            return JsonResponse({"status": "error", "message": str(e)}, status=400)
-
-    context = {
-        'firebaseConfig': settings.FIREBASE_CONFIG
-    }
-    return render(request, 'webapp/accounts/register.html', context=context)
-
-
-@login_required
-def account_logout(request):
-    logout(request)
-    return render(request, 'webapp/home/index.html')
-
-
 @login_required
 def profile(request):
     try:
@@ -298,13 +213,8 @@ def profile(request):
                 file_extension = file.name.split('.')[-1].lower()
                 filename = f"{account.login_id}.{file_extension}"
 
-                s3 = get_s3_resource()
-
-                s3.Bucket(settings.BUCKET_NAME).upload_fileobj(
-                    file,
-                    f"users/{filename}",
-                    ExtraArgs={'ContentType': request.headers['Content-Type']}
-                )
+                s3 = S3Client()
+                s3.write(f"users/{filename}", file.read(), public=True)
                 account.picture_key = f"users/{filename}"
 
             if username:
@@ -329,26 +239,17 @@ def profile(request):
 
 def s3_delete(file_key):
     try:
-        s3 = get_s3_client()
-
-        s3.delete_object(Bucket=settings.BUCKET_NAME, Key=file_key)
-
+        s3 = S3Client()
+        s3.delete(file_key)
         return True
-
     except Exception as e:
         logger.error(e)
         return False
 
 
 def s3_save_file(file, file_name, file_extension):
-    file.seek(0)
-
-    s3 = get_s3_resource()
-    s3.Bucket(settings.BUCKET_NAME).upload_fileobj(
-        file,
-        f"qrcodes/{file_name}.{file_extension}",
-        ExtraArgs={'ContentType': "image/png"}
-    )
+    s3 = S3Client()
+    s3.write(f"qrcodes/{file_name}.{file_extension}", file.read(), public=True)
     return f"qrcodes/{file_name}.{file_extension}"
 
 
@@ -399,14 +300,8 @@ def is_ajax(request):
 
 def get_presigned_url(bucket_name, object_key, expiration=600):
 
-    s3 = get_s3_client()
-
-    url = s3.generate_presigned_url(
-        'get_object',
-        Params={'Bucket': bucket_name, 'Key': object_key},
-        ExpiresIn=expiration
-    )
-    return url
+    s3 = S3Client()
+    return s3.urlize(object_key, expiration=expiration)
 
 
 @login_required
@@ -437,18 +332,14 @@ def get_qrcode(request):
 
                     try:
                         if user_qrcode.key_image:
-                            s3 = get_s3_client()
-                            s3.delete_object(Bucket=settings.BUCKET_NAME, Key=user_qrcode.key_image)
-
-                        content = str(encrypt_data(str(data), key))
-                        file_name, s3_path = qrcode_generate(content)
-
-                        if user_qrcode.key_image:
                             delete_success = s3_delete(user_qrcode.key_image)
                             if not delete_success:
                                 return JsonResponse(
                                     {"status": "error", "message": "An error occurred while deleting the old QR code."},
                                     status=400)
+
+                        content = str(encrypt_data(str(data), key))
+                        file_name, s3_path = qrcode_generate(content)
 
                     except Exception as e:
                         logger.error(e)
@@ -489,11 +380,10 @@ def get_qrcode(request):
 
                 return JsonResponse({"status": "success", "image_url": image_url}, status=200)
         elif request.method == "POST":
-            s3 = get_s3_client()
+            s3 = S3Client()
 
             try:
-                response = s3.get_object(Bucket=settings.BUCKET_NAME, Key=user_qrcode.key_image)
-                file_content = response['Body'].read()
+                file_content = s3.read(user_qrcode.key_image)
 
                 response = HttpResponse(file_content, content_type='image/png')
                 response['Content-Disposition'] = f'attachment; filename="{user_qrcode.key_code}.png"'
