@@ -12,6 +12,10 @@ services:
       - "${ADMIN_PORT}:8000"
     depends_on:
       - db
+    volumes:
+      - "./smartparking:/home/QrParking/smartparking"
+      - "./smartparking/staticfiles:/home/QrParking/smartparking/staticfiles"
+      - "./smartparking/shell:/home/QrParking/smartparking/shell"
     restart: always
 
   api:
