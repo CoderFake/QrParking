@@ -11,8 +11,8 @@ services:
     ports:
       - "${ADMIN_PORT}:8000"
     volumes:
-      - "./smartparking:home/QrParking/smartparking"
-      - "./staticfiles:home/QrParking/smartparking/staticfiles"
+      - "./smartparking:/home/QrParking/smartparking"
+      - "./smartparking/staticfiles:/home/QrParking/smartparking/staticfiles"
     depends_on:
       - db_stg
     command: >
@@ -20,7 +20,7 @@ services:
         python manage.py makemigrations &&
         python manage.py migrate &&
         python manage.py collectstatic --noinput --no-post-process &&
-        chown -R www-data:www-data /home/smartparking/staticfiles &&
+        chown -R www-data:www-data /home/QrParking/smartparking/staticfiles &&
         python create_superuser_and_site.py &&
         gunicorn smartparking.wsgi:application --workers 3 --bind 0.0.0.0:8000"
     restart: always
