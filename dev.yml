@@ -12,7 +12,15 @@ services:
       - "${ADMIN_PORT}:8000"
     depends_on:
       - db
-    command: /home/QrParking/smartparking/shell/dev_entrypoint.sh
+    command: >
+      sh -c "
+        python manage.py makemigrations &&
+        python manage.py migrate &&
+        python manage.py collectstatic --noinput --no-post-process &&
+        chown -R www-data:www-data /home/QrParking/smartparking/staticfiles &&
+        python create_superuser_and_site.py &&
+        python manage.py runserver 0.0.0.0:8000
+      "
     restart: always
 
   api:
