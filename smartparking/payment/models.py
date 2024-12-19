@@ -52,3 +52,5 @@ class Ticket(models.Model):
     expired_at = models.DateTimeField(null=True, blank=True)
     type = models.IntegerField(choices=TicketType.choices)
     created_at = models.DateTimeField(auto_now=True)
+
+
