@@ -1,11 +1,27 @@
 {% extends "webapp/layouts/base.html" %}
 
 {% load static %}
-{% block title %} Qr Code {% endblock %}
+{% block title %} Profile {% endblock %}
 
 {% block stylesheets %}
     <link type="text/css" href="{% static 'webapp/assets/css/profile.css' %}"
           rel="stylesheet">
+    <style>
+        #profile-form .power-container {
+            background-color: #e7e7e7;
+            width: 100%;
+            height: 10px;
+            border-radius: 5px;
+        }
+
+        #profile-form .power-container #power-point {
+            background-color: #D73F40;
+            width: 1%;
+            height: 100%;
+            border-radius: 5px;
+            transition: 0.5s;
+        }
+    </style>
 {% endblock stylesheets %}
 
 {% block content %}
@@ -18,61 +34,215 @@
         {% endfor %}
     {% endif %}
     <div class="container light-style flex-grow-1 h-100">
-    <h4 class="font-weight-bold py-3 mb-4">
-        Account settings
-    </h4>
-    <div class="card overflow-hidden">
-        <div class="row no-gutters row-bordered row-border-light custom-row">
-            <div class="col-md-3 pt-0">
-                <div class="list-group list-group-flush account-settings-links">
-                    <a class="list-group-item list-group-item-action active" data-toggle="list"
-                        href="#account-general">General</a>
-{#                    {% if request.user.sigin_method =="" %}#}
-                    <a class="list-group-item list-group-item-action" data-toggle="list"
-                        href="#account-change-password">Change password</a>
-{#                    {% else %}#}
+        <h4 class="font-weight-bold py-3 mb-4">
+            Account settings
+        </h4>
+        <div class="card overflow-hidden">
+            <div class="row no-gutters row-bordered row-border-light custom-row mt-0">
+                <div class="col-md-12 pt-0">
+                    <div class="list-group list-group-flush account-settings-links d-flex flex-row">
+                        <a class="list-group-item list-group-item-action text center tab-general text-center"
+                           href="?tab=general">General</a>
+                        {% if request.user.signin_method == "password" %}
+                            <a class="list-group-item list-group-item-action tab-change-password text-center"
+                               href="?tab=change-password">Change password</a>
+                        {% endif %}
+                    </div>
                 </div>
-            </div>
-            <div class="col-md-9">
-                <form id="profile-form" method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-            <div class="form-group">
-                <label class="form-label">Username</label>
-                <input type="text" name="username" class="form-control mb-1" value="{{ request.user.username }}">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Phone</label>
-                <input type="text" name="phone" class="form-control" value="{{ request.user.phone_number }}">
-            </div>
-            <div class="form-group">
-                <label class="form-label">E-mail</label>
-                <input type="text" name="email" class="form-control mb-1" value="{{ request.user.email }}">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Address</label>
-                <input type="text" name="address" class="form-control mb-1" value="{{ request.user.address }}">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Profile Picture</label>
-                <input type="file" name="profile_picture" class="form-control">
-            </div>
-            <button type="submit" class="btn btn-primary custom-btn">Save changes</button>
-        </form>
-            
+                <div class="col-md-12 p-5">
+                    {% if tab != 'change-password' %}
+                        <div class="row">
+                            <div class="col-12 col-lg-9">
+                                <form id="profile-form" method="POST" enctype="multipart/form-data">
+                                    {% csrf_token %}
+                                    <div class="form-group">
+                                        <label for="username" class="form-label">Username</label>
+                                        <input type="text" id="username" name="username" class="form-control mb-1"
+                                               value="{% if request.user.username %} {{ request.user.username }}{% endif %}"
+                                                {% if request.user.signin_method != "password" %} readonly {% endif %}>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="phone" class="form-label">Phone</label>
+                                        <input type="text" id="phone" name="phone" class="form-control"
+                                               value="{% if request.user.phone_number %}{{ request.user.phone_number}}{% endif %}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="email" class="form-label">E-mail</label>
+                                        <input type="text" id="email" name="email" class="form-control mb-1"
+                                               value="{{ request.user.email }}" readonly>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="address" class="form-label">Address</label>
+                                        <input type="text" id="address" name="address" class="form-control mb-1"
+                                               value="{% if request.user.address %}{{ request.user.address}}{% endif %}">
+                                    </div>
+                                    {% if request.user.signin_method == "password" %}
+                                        <div class="form-group">
+                                            <label for="file" class="form-label">Profile Picture</label>
+                                            <input type="file" id="file" name="profile_picture" class="form-control">
+                                        </div>
+                                    {% endif %}
+                                    <button type="submit" class="btn btn-primary custom-btn">Save changes</button>
+                                </form>
+                            </div>
+                            <div class="d-none d-lg-flex col-lg-3 align-items-center">
+                                <div class="justify-content-center rounded-circle border-1 border-black w-100 overflow-hidden">
+                                    {% if request.user.picture_key %}
+                                        <img class="user-avatar md-avatar rounded-circle w-100 h-auto"
+                                             alt="Image placeholder"
+                                             src="{{ base_url }}{{ request.user.picture_key }}">
+                                    {% else %}
+                                        <img class="user-avatar md-avatar rounded-circle w-100 h-auto"
+                                             alt="Image placeholder"
+                                             src="{% static 'webapp/assets/img/icons/user.png' %}">
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% elif tab == 'change-password' and  request.user.signin_method == "password" %}
+                        <div class="col-12">
+                            <form id="profile-form" method="POST" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label for="old-password" class="form-label">Old Password</label>
+                                    <div class="input-group">
+                                        <input type="password" id="old-password" name="old_password"
+                                               class="form-control">
+                                        <span class="input-group-text" id="basic-addon2">
+                                            <span class="fas fa-unlock-alt show-password"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="new-password" class="form-label">New Password</label>
+                                    <div class="input-group password-group">
+                                        <input type="password" id="new-password" name="new_password"
+                                               class="form-control">
+                                        <span class="input-group-text" id="basic-addon2">
+                                            <span class="fas fa-unlock-alt show-password"></span>
+                                        </span>
+                                    </div>
+                                    <div class="power-container d-none mt-3">
+                                        <div id="power-point"></div>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="confirm-password" class="form-label">Confirm New Password</label>
+                                    <div class="input-group confirm-password-group">
+                                        <input type="password" id="confirm-password" name="confirm_password"
+                                               class="form-control">
+                                        <span class="input-group-text" id="basic-addon2">
+                                            <span class="fas fa-unlock-alt show-password"></span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary custom-btn">Save changes</button>
+                            </form>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </div>
-</div>
 
 {% endblock content %}
 
 {% block javascripts %}
-     <script>
+    <script>
         $(document).ready(function () {
-            $('.alert-dismissible').each(function() {
+            $('.alert-dismissible').each(function () {
                 createToast($(this).find('.message-tag').text(), $(this).find('.message').text());
                 $(this).remove();
             });
         })
+    </script>
+    <script>
+        $(document).ready(function () {
+
+            $('.show-password').on('click', function () {
+
+                let input = $(this).closest('.input-group').find('input');
+
+                if (input.attr('type') === 'password') {
+                    input.attr('type', 'text');
+                } else {
+                    input.attr('type', 'password');
+                }
+
+                $(this).toggleClass('fa-unlock-alt fa-lock');
+            });
+
+
+            $('#new-password, #confirm-password').on('input', function () {
+                const password = $('#new-password').val();
+                const confirmPassword = $('#confirm-password').val();
+
+                $('.password-group, .confirm-password-group').find('*').css('border', 'none');
+                if (password !== confirmPassword && password && confirmPassword) {
+                    $('.password-group , .confirm-password-group').css('border', '2px solid #dc3545');
+                } else if (password && confirmPassword) {
+                    $('.password-group , .confirm-password-group').css('border', '2px solid #28a745');
+                } else {
+                    $(this).removeAttr('style');
+                    $(this).find('*').removeAttr('style');
+                }
+
+            });
+
+
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            const params = new URLSearchParams(window.location.search);
+            let tab = params.get("tab") || "general";
+
+            if (tab === "general" || tab === "") {
+                $('.tab-general').addClass('active');
+            } else if (tab === "change-password") {
+                $('.tab-change-password').addClass('active');
+            }
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            let widthPower = ["1%", "25%", "50%", "75%", "100%"];
+            let colorPower = ["#D73F40", "#DC6551", "#F2B84F", "#BDE952", "#3ba62f"];
+
+            $("#new-password").on("input", function () {
+                let value = $(this).val();
+                let point = 0;
+
+                if (value !== "") {
+                    $(".power-container").removeClass('d-none');
+
+                    if (value.length >= 8) {
+                        let arrayTest = [
+                            /[a-z]/,
+                            /[A-Z]/,
+                            /[0-9]/,
+                            /[^a-zA-Z0-9]/,
+                        ];
+
+                        arrayTest.forEach(function (item) {
+                            if (item.test(value)) {
+                                point += 1;
+                            }
+                        });
+                    }
+
+                    $("#power-point").css({
+                        width: widthPower[point],
+                        backgroundColor: colorPower[point],
+                    });
+
+                } else {
+                    $(".power-container").addClass('d-none')
+
+                }
+            });
+        });
+
     </script>
 {% endblock javascripts %}

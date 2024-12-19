@@ -2,7 +2,7 @@
 
 {% load static %}
 {% block title %} Sign In {% endblock %}
-
+{% load i18n %}
 {% block stylesheets %}{% endblock stylesheets %}
 
 {% block content %}
@@ -11,7 +11,7 @@
         {% for message in messages %}
             <div class="alert alert-dismissible d-none" role="alert">
                 <div class="message-tag">{{ message.tags }}</div>
-                <div class="message">{{ message }}</div>
+                <div class="message">{% trans message.message %}</div>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         {% endfor %}
@@ -26,7 +26,7 @@
                     <div class="bg-white shadow border-0 rounded border-light p-4 p-lg-5 w-100 fmxw-500">
                         <div class="text-center text-md-center mt-md-0">
                             <h1 class="mb-0 h3 text-uppercase">
-                                Sign In
+                                {% trans "Sign In" %}
                             </h1>
                             <p>
                                 {% if msg %}
@@ -45,15 +45,16 @@
                             </a>
                             <a class="rounded-circle" id="btnMicrosoft">
                                 <img width="40" height="40"
-                                     src="{% static 'webapp/assets/img/icons/microsoft-logo-icon.png' %}" alt="microsoft"/>
+                                     src="{% static 'webapp/assets/img/icons/microsoft-logo-icon.png' %}"
+                                     alt="microsoft"/>
                             </a>
                         </div>
                         <div class="col-12 text-center mt-3"><h5>or</h5></div>
-                        <form method="post" action="{% url 'login' %}" class="mt-4">
+                        <form id="form-login" method="post" action="{% url 'login' %}" class="mt-4">
                             {% csrf_token %}
                             <!-- Form -->
                             <div class="form-group mb-4">
-                                <label for="email">Username</label>
+                                <label for="email">{% trans "Username" %} </label>
                                 <div class="input-group">
                                     <span class="input-group-text" id="basic-addon1">
                                         <span class="fas fa-user-circle"></span>
@@ -65,7 +66,7 @@
                             <div class="form-group">
                                 <!-- Form -->
                                 <div class="form-group mb-4">
-                                    <label for="password">Your Password</label>
+                                    <label for="password">{% trans "Your Password" %}</label>
                                     <div class="input-group">
                                         <span class="input-group-text" id="basic-addon2">
                                             <span class="show-password fas fa-eye"></span>
@@ -79,23 +80,24 @@
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" value="" id="remember">
                                         <label class="form-check-label mb-0" for="remember">
-                                            Remember me
+                                            {% trans "Remember me" %}
                                         </label>
                                     </div>
-                                    <div><a href="/page-forgot-password.html" class="small text-right">Lost
-                                        password?</a></div>
+                                    <div><a href="/page-forgot-password.html"
+                                            class="small text-right">{% trans "Forgot password?" %}</a></div>
                                 </div>
                             </div>
                             <div class="d-grid">
-                                <button type="submit" name="login" class="btn btn-login btn-gray-800">Sign In</button>
+                                <button type="submit" name="login"
+                                        class="btn btn-login btn-gray-800">{% trans "Sign In" %}</button>
                             </div>
                         </form>
                         <br/>
 
                         <div class="d-flex justify-content-center align-items-center mt-4">
                             <span class="fw-normal">
-                                Not registered?
-                                <a href="{% url 'register' %}" class="fw-bold">Create account</a>
+                                {% trans "Not registered?" %}
+                                <a href="{% url 'register' %}" class="fw-bold">{% trans "Not registered?" %}</a>
                             </span>
                         </div>
                     </div>
@@ -120,19 +122,53 @@
                 }
             })
 
+            $('#form-login .btn-login').on('click', function (e) {
+                e.preventDefault();
+                let email = $('#email').val();
+                let password = $('#password').val();
+                const csrfToken = $('input[name="csrfmiddlewaretoken"]').val();
+
+                $.ajax({
+                    url: '{% url "login" %}',
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken
+                    },
+                    data: JSON.stringify({
+                        'email': email,
+                        'password': password
+                    }),
+                    dataType: 'json',
+                    success: function (response) {
+                        if (response.status === "success") {
+                            window.location.href = response.next;
+                        } else {
+                            createToast(response.status, response.message);
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        let errorMessage = "An error occurred. Please try again.";
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        createToast("error", errorMessage);
+                    }
+                });
+            });
         })
     </script>
     <script>
         $(document).ready(function () {
-            $('.alert-dismissible').each(function() {
+            $('.alert-dismissible').each(function () {
                 createToast($(this).find('.message-tag').text(), $(this).find('.message').text());
                 $(this).remove();
             });
         })
     </script>
-    
+
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
+        import {initializeApp} from "https://www.gstatic.com/firebasejs/10.11.1/firebase-app.js";
         import {
             getAuth,
             signInWithPopup,
@@ -141,55 +177,55 @@
             OAuthProvider,
             fetchSignInMethodsForEmail
         } from "https://www.gstatic.com/firebasejs/10.11.1/firebase-auth.js";
-    
+
         const firebaseConfig = {{ firebaseConfig|safe }};
-        
+
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const ggProvider = new GoogleAuthProvider();
         const fbProvider = new FacebookAuthProvider();
         const msProvider = new OAuthProvider('microsoft.com');
-    
+
         ggProvider.setCustomParameters({
             'display': 'popup'
         });
-    
+
         fbProvider.setCustomParameters({
             'display': 'popup'
         });
-    
+
         const btnGoogle = document.getElementById('btnGoogle');
         const btnFaceBook = document.getElementById('btnFacebook');
         const btnMicrosoft = document.getElementById('btnMicrosoft');
         const csrfToken = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-    
+
         async function handleSuccess(result, provider) {
             try {
-                const idToken = await result.user.getIdToken();  
-                const response = await fetch("{% url 'login' %}", { 
+                const idToken = await result.user.getIdToken();
+                const response = await fetch("{% url 'login' %}", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "X-CSRFToken": csrfToken  
+                        "X-CSRFToken": csrfToken
                     },
-                    body: JSON.stringify({ idToken })
+                    body: JSON.stringify({idToken})
                 });
-    
+
                 const data = await response.json();
                 if (data.status === "success") {
                     window.location.href = data.next;
                 } else {
-                    createToast(data.status, data.message); 
+                    createToast(data.status, data.message);
                 }
             } catch (error) {
-                createToast(error.status, error.message); 
+                createToast(error.status, error.message);
             }
         }
-    
+
         async function handleError(error) {
             const errorCode = error.code;
             const errorMessage = error.message;
-    
+
             if (errorCode === 'auth/account-exists-with-different-credential') {
                 const email = error.customData.email;
                 const signInMethods = await fetchSignInMethodsForEmail(auth, email);
@@ -198,7 +234,7 @@
                 createToast("error", "Authentication Error");
             }
         }
-    
+
         btnGoogle.addEventListener('click', async function (e) {
             e.preventDefault();
             try {
@@ -208,7 +244,7 @@
                 await handleError(error);
             }
         });
-    
+
         btnFaceBook.addEventListener('click', async function (e) {
             e.preventDefault();
             try {
@@ -218,7 +254,7 @@
                 await handleError(error);
             }
         });
-    
+
         btnMicrosoft.addEventListener('click', async function (e) {
             e.preventDefault();
             try {
@@ -229,5 +265,5 @@
             }
         });
     </script>
-    
+
 {% endblock javascripts %}
