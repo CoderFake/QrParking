@@ -4,12 +4,13 @@ from pathlib import Path
 from django.contrib import messages
 from dotenv import load_dotenv
 from django.contrib.messages import constants as messages
+from django.utils.translation import gettext_lazy as _
 
 environment = os.getenv('ENVIRONMENT', 'dev')
 ENVIRONMENT = environment
 
 load_dotenv(f".env.{environment}")
-print("project load environment: ", environment)
+# print("project load environment: ", environment)
 
 DEBUG = False
 if environment == "dev":
@@ -38,6 +39,7 @@ ALLOWED_HOSTS = ['*']
 # Application definition
 
 INSTALLED_APPS = [
+    "admin_argon.apps.AdminArgonConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -48,6 +50,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "webapp",
+    "adminapp",
     "account",
     "payment",
     "vehicle",
@@ -68,6 +71,8 @@ MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.locale.LocaleMiddleware",
+    "webapp.middlewares.LanguageMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -119,10 +124,10 @@ DATABASES = {
         "NAME": os.environ.get("DB_NAME"),
         "USER": os.environ.get("DB_USER"),
         "PASSWORD": os.environ.get("DB_PASSWORD"),
-        # "HOST": os.environ.get("DB_HOST"),
-        # "PORT": os.environ.get("DB_PORT"),
-        "HOST": "localhost",
-        "PORT": 15300,
+        "HOST": os.environ.get("DB_HOST"),
+        "PORT": os.environ.get("DB_PORT"),
+        # "HOST": "localhost",
+        # "PORT": 15300,
     }
 }
 
@@ -149,12 +154,26 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = "en-us"
-
-TIME_ZONE = "Asia/Ho_Chi_Minh"
+LANGUAGE_CODE = "vi"
 
 USE_I18N = True
 USE_L10N = True
+
+LANGUAGES = (
+    ('vi', _('Vietnamese')),
+    ('en', _('English')),
+)
+MULTILINGUAL_LANGUAGES = (
+    "en",
+    "vi",
+)
+
+LOCALE_PATHS = [
+    os.path.join(BASE_DIR, "locale"),
+]
+
+TIME_ZONE = "Asia/Ho_Chi_Minh"
+
 
 USE_TZ = True
 
@@ -181,6 +200,7 @@ MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 LOGOUT_REDIRECT_URL = ""
 LOGIN_URL = "/account/login/"
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
