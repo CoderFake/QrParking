@@ -3,13 +3,12 @@ import json
 import os
 from datetime import timedelta
 from io import BytesIO
-from time import sleep
-from urllib.parse import urlparse
-
+from urllib.parse import urlparse,  urlencode
 import qrcode
 import requests
-from PIL.Image import Image
+from PIL import Image
 from django.contrib.auth.hashers import make_password
+from django.contrib.messages import get_messages
 from django.shortcuts import render, redirect
 from django.conf import settings
 from django.contrib import messages
@@ -64,21 +63,31 @@ class FirebaseLogin(APIView):
 
     def get(self, request):
         context = {'firebaseConfig': settings.FIREBASE_CONFIG}
+        messages_list = [
+            {"message": str(message), "tags": message.tags} for message in get_messages(request)
+        ]
+        context['messages'] = messages_list
         return Response(context, template_name=self.template_name, status=200)
 
     def post(self, request):
-        if request.POST.get("email") and request.POST.get("password"):
-            email = request.POST.get("email")
-            password = request.POST.get("password")
-
-            user = authenticate(email=email, password=password)
-            if user:
-                login(request, user)
-                return redirect("index")
-
-        id_token = request.data.get('idToken')
         next_url = request.data.get('next', '/')
 
+        if request.data.get("email") and request.data.get("password"):
+            email = request.data.get("email")
+            password = request.data.get("password")
+
+            user = authenticate(email=email, password=password)
+            if not user:
+                return Response({"status": "error", "message": "Username or Password is incorrect!"}, status=404)
+            if user.status == "inactive":
+                return Response({"status": "warning", "message": "User account is inactive!"}, status=403)
+
+            login(request, user, backend='account.authentication.FirebaseAuthentication')
+            user.last_login = timezone.now()
+            user.save()
+            return Response({"status": "success", "next": next_url}, status=200)
+
+        id_token = request.data.get('idToken')
         if id_token == "":
             return Response({"status": "error", "message": "No idToken provided."}, status=400)
 
@@ -153,13 +162,70 @@ class FirebaseLogin(APIView):
             return Response({"status": "error", "message": str(e)}, status=500)
 
 
+def signup(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            email = data.get('email')
+            username = data.get('username')
+            id_token = data.get('idToken')
+
+            decoded_token = auth.verify_id_token(id_token)
+            login_id = decoded_token.get("sub", "")
+            signin_method = decoded_token.get("firebase", {}).get("sign_in_provider", "")
+
+            if email != decoded_token.get("email", ""):
+                return JsonResponse({"status": "error", "message": "Email does not match!"}, status=400)
+
+            if User.objects.filter(login_id=login_id).exists():
+                return JsonResponse({"status": "error", "message": "User already exists!"}, status=400)
+            try:
+                with transaction.atomic():
+                    extra_fields = {}
+
+                    extra_fields['login_id'] = login_id
+                    extra_fields['signin_method'] = signin_method
+
+                    password = data.get('password')
+                    if signin_method != "password":
+                        extra_fields["status"] = "active"
+                        password = None
+
+                    user = User.objects.create_user(
+                        email=email,
+                        username=username,
+                        password=password,
+                        **extra_fields
+                    )
+
+                    messages.success(request, "User created successfully!")
+                    if signin_method == "password":
+                        send_email(request, user)
+                        messages.info(request, "Please verify your account via email!")
+
+            except Exception as e:
+                logger.error(e)
+                return JsonResponse({"status": "error", "message": "Cannot create user!"}, status=400)
+
+            return JsonResponse({"status": "success"}, status=200)
+
+        except Exception as e:
+            logger.error(e)
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+
+    context = {
+        'firebaseConfig': settings.FIREBASE_CONFIG
+    }
+    return render(request, 'webapp/accounts/register.html', context=context)
+
+
 def send_email(request, user):
     token = default_token_generator.make_token(user)
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     current_site = get_current_site(request).domain
 
     verify_url = reverse('verify_email', kwargs={'uid': uid, 'token': token})
-    verification_link = f"http://{current_site}{verify_url}"
+    verification_link = f"{current_site}{verify_url}"
 
     mail_subject = "Activate your account"
     parameters = {
@@ -204,63 +270,14 @@ def verify_email(request, uid, token):
     if user is not None and default_token_generator.check_token(user, token):
 
         user.is_active = True
+        user.status = "active"
         user.token = None
         user.save()
 
         messages.success(request, 'Your email has been successfully verified!')
     else:
         messages.success(request, 'The verification link is invalid or has expired!')
-    return redirect('account:login')
-
-
-def signup(request):
-    if request.method == 'POST':
-        try:
-            data = json.loads(request.body)
-            email = data.get('email')
-            username = data.get('username')
-            id_token = data.get('idToken')
-
-            decoded_token = auth.verify_id_token(id_token)
-            login_id = decoded_token.get("sub", "")
-            signin_method = decoded_token.get("firebase", {}).get("sign_in_provider", "")
-
-            if email != decoded_token.get("email", ""):
-                return JsonResponse({"status": "error", "message": "Email does not match!"}, status=400)
-
-            if User.objects.filter(login_id=login_id).exists():
-                return JsonResponse({"status": "error", "message": "User already exists!"}, status=400)
-            try:
-                with transaction.atomic():
-                    extra_fields = {}
-
-                    extra_fields['login_id'] = login_id
-                    extra_fields['signin_method'] = signin_method
-                    user = User.objects.create_user(
-                        email=email,
-                        username=username,
-                        password=None,
-                        **extra_fields
-                    )
-
-                    send_email(request, user)
-
-                    messages.success(request, "User created successfully!")
-
-            except Exception as e:
-                logger.error(e)
-                return JsonResponse({"status": "error", "message": "Cannot create user!"}, status=400)
-
-            return JsonResponse({"status": "success"}, status=200)
-
-        except Exception as e:
-            logger.error(e)
-            return JsonResponse({"status": "error", "message": str(e)}, status=400)
-
-    context = {
-        'firebaseConfig': settings.FIREBASE_CONFIG
-    }
-    return render(request, 'webapp/accounts/register.html', context=context)
+    return redirect('login')
 
 
 @login_required
@@ -271,42 +288,112 @@ def account_logout(request):
 
 @login_required
 def profile(request):
+    tab = request.GET.get("tab", "general")
+    if tab not in ["general", "change-password"]:
+        return HttpResponse(status=404)
+
     try:
         account = User.objects.get(email=request.user.email)
+        if tab == "change-password" and account.signin_method != "password":
+            return HttpResponse(status=404)
+
         if request.method == "POST":
+            if tab == "general":
+                username = request.POST.get('username', "")
+                phone = request.POST.get('phone', "")
+                address = request.POST.get('address', "")
 
-            username = request.POST.get('username', "")
-            phone = request.POST.get('phone', "")
-            address = request.POST.get('address', "")
-            password = request.POST.get('password', "")
+                if account.signin_method == "password":
+                    if username:
+                        account.username = username
 
-            if request.FILES.get('profile_picture'):
-                file = request.FILES.get('profile_picture')
-                file_extension = file.name.split('.')[-1].lower()
-                filename = f"{account.login_id}.{file_extension}"
+                    if request.FILES.get('profile_picture'):
+                        file = request.FILES.get('profile_picture')
+                        file_extension = file.name.split('.')[-1].lower()
+                        filename = f"{account.login_id}.{file_extension}"
 
-                s3 = S3Client()
-                s3.write(f"users/{filename}", file.read(), public=True)
-                account.picture_key = f"users/{filename}"
+                        s3 = S3Client()
+                        s3.write(f"users/{filename}", file.read(), public=True)
+                        account.picture_key = f"users/{filename}"
 
-            if username:
-                account.username = username
-            if phone:
-                account.phone_number = phone
-            if address:
-                account.address = address
-            if password:
-                account.set_password(password)
+                if phone and account.phone_number != phone:
+                    if User.objects.filter(phone_number=phone).exclude(pk=account.pk).exists():
+                        messages.error(request, "Phone number already in use by another account.")
+                    else:
+                        account.phone_number = phone
+                if address and account.address != address:
+                    account.address = address
 
-            account.save()
-            messages.success(request, 'Profile updated successfully!')
-            return redirect('profile')
+                account.save()
+                messages.success(request, 'Profile updated successfully!')
+
+                base_url = reverse('profile')
+                query_string = urlencode({'tab': 'general'})
+                return redirect(f"{base_url}?{query_string}")
+
+            import re
+            if tab == "change-password":
+                base_url = reverse('profile')
+                query_string = urlencode({'tab': 'change-password'})
+
+                password = request.POST.get('password', "")
+                new_password = request.POST.get('new_password', "")
+                confirm_password = request.POST.get('confirm_password', "")
+
+                if not password or not authenticate(email=request.user.email, password=password):
+                    messages.error(request, "Old password is incorrect!")
+                    return redirect(f"{base_url}?{query_string}")
+
+                if not new_password:
+                    messages.error(request, "New password cannot be blank.")
+                    return redirect(f"{base_url}?{query_string}")
+
+                if password == new_password:
+                    messages.error(request, "New password cannot be the same as the old password.")
+                    return redirect(f"{base_url}?{query_string}")
+
+                if len(new_password) < 8:
+                    messages.error(request, "New password must be at least 8 characters long.")
+                    return redirect(f"{base_url}?{query_string}")
+
+                if not any(char.islower() for char in new_password):
+                    messages.error(request, "New password must contain at least one lowercase letter.")
+                    return redirect(f"{base_url}?{query_string}")
+
+                if not any(char.isupper() for char in new_password):
+                    messages.error(request, "New password must contain at least one uppercase letter.")
+                    return redirect(f"{base_url}?{query_string}")
+
+                if not any(char.isdigit() for char in new_password):
+                    messages.error(request, "New password must contain at least one digit.")
+                    return redirect(f"{base_url}?{query_string}")
+
+                if not any(char in "@$!%*?&" for char in new_password):
+                    messages.error(request, "New password must contain at least one special character (@$!%*?&).")
+                    return redirect(f"{base_url}?{query_string}")
+
+                if new_password != confirm_password:
+                    messages.error(request, "New password doesn't match the confirmation password.")
+                    return redirect(f"{base_url}?{query_string}")
+
+                account.set_password(new_password)
+                account.save()
+
+                messages.success(request, "Password has been changed successfully!")
+                return redirect(f"{base_url}?{query_string}")
+
+            return HttpResponse(content="NOT FOUND", status=404)
 
     except User.DoesNotExist as e:
         logger.error(e)
-        return JsonResponse({"status": "error", "message": "User does not exist!"}, status=404)
+        return HttpResponse({"status": "error", "message": "User does not exist!"}, status=404)
 
-    return render(request, 'webapp/accounts/profile.html')
+    context = {
+        "account": account,
+        "tab": tab
+    }
+
+    return render(request, 'webapp/accounts/profile.html', context)
 
 
 def s3_delete(file_key):

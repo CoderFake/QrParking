@@ -22,4 +22,6 @@ class ParkingHistory(models.Model):
     check_out = models.DateTimeField(null=True, blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
     license_number = models.CharField(max_length=50)
-    image_key = models.CharField(max_length=100)
+    image_check_in_key = models.CharField(max_length=255, null=True, blank=True)
+    image_check_out_key = models.CharField(max_length=255, null=True, blank=True)
+
