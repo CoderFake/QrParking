@@ -74,3 +74,30 @@ $(document).ready(function() {
     }
 });
 </script>
+
+<script>
+$(document).ready(function() {
+    $('#language-toggle').change(function(e) {
+        e.preventDefault();
+        var isChecked = $(this).is(':checked');
+        var language = isChecked ? 'en' : 'vi';
+        $('#language-input').val(language);
+        
+        $.ajax({
+            url: $('#language-form').attr('action'),  
+            type: 'POST',                         
+            data: {
+                language: language,               
+                csrfmiddlewaretoken: $('input[name="csrfmiddlewaretoken"]').val() 
+            },
+            success: function(response) {
+                location.reload();
+            },
+            error: function(xhr, status, error) {
+                alert('Error changing language');
+            }
+        });
+    });
+});
+</script>
+

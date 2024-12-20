@@ -1,4 +1,5 @@
 {% load static %}
+{% load i18n %}
 <nav class="navbar navbar-top navbar-expand navbar-dashboard navbar-dark ps-0 pe-2 pb-0">
     <div class="container-fluid px-0">
         <div class="d-flex justify-content-between w-100" id="navbarSupportedContent">
@@ -6,14 +7,17 @@
                 <button id="sidebar-toggle"
                         class="sidebar-toggle me-3 btn btn-icon-only btn-lg btn-circle d-none d-md-inline-block"><span
                         class="fas fa-bars"></span></button>
-                <!-- Search form -->
-                <form class="navbar-search form-inline" id="navbar-search-main">
-                    <div class="input-group input-group-merge search-bar">
-                        <span class="input-group-text" id="topbar-addon"><span class="fas fa-search"></span></span>
-                        <input type="text" class="form-control" id="topbarInputIconLeft" placeholder="Search"
-                               aria-label="Search" aria-describedby="topbar-addon">
-                    </div>
+                <!-- language form -->
+                <form id="language-form" class="switch" method="POST" action="{% url 'language_setting' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="language" id="language-input" value="vi">
+                    <input id="language-toggle" class="check-toggle check-toggle-round-flat" type="checkbox"
+                        {% if request.session.language == 'en' %}checked{% endif %}>
+                    <label for="language-toggle"></label>
+                    <span class="on">VI</span>
+                    <span class="off">EN</span>
                 </form>
+
             </div>
             <!-- Navbar links -->
             {% if request.user.is_authenticated %}
@@ -30,7 +34,7 @@
                     </a>
                     <div class="dropdown-menu dashboard-dropdown dropdown-menu-lg dropdown-menu-center mt-2 py-0">
                         <div class="list-group list-group-flush">
-                            <a href="#" class="text-center text-primary fw-bold border-bottom border-light py-3">Notifications</a>
+                            <a href="#" class="text-center text-primary fw-bold border-bottom border-light py-3">{% trans "Notifications" %}</a>
                             <a href="/calendar.html"
                                class="list-group-item list-group-item-action border-bottom border-light">
                                 <div class="row align-items-center">
@@ -109,8 +113,13 @@
                     <a class="nav-link dropdown-toggle pt-1 px-0" href="#" role="button" data-bs-toggle="dropdown"
                        aria-expanded="false">
                         <div class="media d-flex align-items-center">
-                            <img class="user-avatar md-avatar rounded-circle" alt="Image placeholder"
+                            {% if request.user.picture_key %}
+                                 <img class="user-avatar md-avatar rounded-circle" alt="Image placeholder"
                                  src="{{ base_url }}{{ request.user.picture_key }}">
+                            {% else %}
+                                <img class="user-avatar md-avatar rounded-circle" alt="Image placeholder"
+                                 src="{% static 'webapp/assets/img/icons/user.png' %}">
+                            {% endif %}
                             <div class="media-body ms-2 text-dark align-items-center d-none d-lg-block">
                                 <span class="mb-0 font-small fw-bold">
                                     {{ request.user.username }}
@@ -123,12 +132,12 @@
                     </a>
                     <div class="dropdown-menu dashboard-dropdown dropdown-menu-end mt-2 py-0">
                         <a class="dropdown-item rounded-top fw-bold" href="/settings.html">
-                            <span class="far fa-user-circle"></span>My Profile</a>
-                        <a class="dropdown-item fw-bold" href="#"><span class="fas fa-envelope-open-text"></span>Messages</a>
-                        <a class="dropdown-item fw-bold" href="#"><span class="fas fa-user-shield"></span>Support</a>
+                            <span class="far fa-user-circle"></span>{% trans "My Profile" %}</a>
+                        <a class="dropdown-item fw-bold" href="#"><span class="fas fa-envelope-open-text"></span>{% trans "Messages" %}</a>
+                        <a class="dropdown-item fw-bold" href="#"><span class="fas fa-user-shield"></span>{% trans "Support" %}</a>
                         <div role="separator" class="dropdown-divider my-0"></div>
                         <a class="dropdown-item rounded-bottom fw-bold" href="/logout/">
-                            <span class="fas fa-sign-out-alt text-danger"></span>Logout</a>
+                            <span class="fas fa-sign-out-alt text-danger"></span>{% trans "Logout" %}</a>
                     </div>
                 </li>
             </ul>
