@@ -1,6 +1,6 @@
 {% load static %}
 {% load i18n %}
-<nav class="navbar navbar-top navbar-expand navbar-dashboard navbar-dark ps-0 pe-2 pb-0">
+<nav class="navbar navbar-top navbar-expand navbar-dashboard navbar-dark ps-0 pe-2 pb-0 d-none d-md-flex">
     <div class="container-fluid px-0">
         <div class="d-flex justify-content-between w-100" id="navbarSupportedContent">
             <div class="d-flex align-items-center">
@@ -8,15 +8,15 @@
                         class="sidebar-toggle me-3 btn btn-icon-only btn-lg btn-circle d-none d-md-inline-block"><span
                         class="fas fa-bars"></span></button>
                 <!-- language form -->
-                <form id="language-form" class="switch" method="POST" action="{% url 'language_setting' %}">
-                    {% csrf_token %}
-                    <input type="hidden" name="language" id="language-input" value="vi">
-                    <input id="language-toggle" class="check-toggle check-toggle-round-flat" type="checkbox"
-                        {% if request.session.language == 'en' %}checked{% endif %}>
-                    <label for="language-toggle"></label>
-                    <span class="on">VI</span>
-                    <span class="off">EN</span>
-                </form>
+{#                <form id="language-form" class="switch" method="POST" action="{% url 'language_setting' %}">#}
+{#                    {% csrf_token %}#}
+{#                    <input type="hidden" name="language" id="language-input" value="vi">#}
+{#                    <input id="language-toggle" class="check-toggle check-toggle-round-flat" type="checkbox"#}
+{#                        {% if request.session.language == 'en' %}checked{% endif %}>#}
+{#                    <label for="language-toggle"></label>#}
+{#                    <span class="on">VI</span>#}
+{#                    <span class="off">EN</span>#}
+{#                </form>#}
 
             </div>
             <!-- Navbar links -->
@@ -34,7 +34,7 @@
                     </a>
                     <div class="dropdown-menu dashboard-dropdown dropdown-menu-lg dropdown-menu-center mt-2 py-0">
                         <div class="list-group list-group-flush">
-                            <a href="#" class="text-center text-primary fw-bold border-bottom border-light py-3">{% trans "Notifications" %}</a>
+                            <a href="#" class="text-center text-primary fw-bold border-bottom border-light py-3">{% trans "Thông báo" %}</a>
                             <a href="/calendar.html"
                                class="list-group-item list-group-item-action border-bottom border-light">
                                 <div class="row align-items-center">
@@ -104,8 +104,7 @@
                                     </div>
                                 </div>
                             </a>
-                            <a href="#" class="dropdown-item text-center text-primary fw-bold rounded-bottom py-3">View
-                                all</a>
+                            <a href="#" class="dropdown-item text-center text-primary fw-bold rounded-bottom py-3">Xem tất cả</a>
                         </div>
                     </div>
                 </li>
@@ -125,19 +124,19 @@
                                     {{ request.user.username }}
                                 </span>
                                 <div class="btn btn-secondary text-dark btn-xs">
-                                    <span class="me-2"></span>{{ balance }} points
+                                    <span class="me-2"></span>{{ balance }} điểm
                                 </div>
                             </div>
                         </div>
                     </a>
                     <div class="dropdown-menu dashboard-dropdown dropdown-menu-end mt-2 py-0">
                         <a class="dropdown-item rounded-top fw-bold" href="/settings.html">
-                            <span class="far fa-user-circle"></span>{% trans "My Profile" %}</a>
-                        <a class="dropdown-item fw-bold" href="#"><span class="fas fa-envelope-open-text"></span>{% trans "Messages" %}</a>
-                        <a class="dropdown-item fw-bold" href="#"><span class="fas fa-user-shield"></span>{% trans "Support" %}</a>
+                            <span class="far fa-user-circle"></span>{% trans "Thông tin cá nhân" %}</a>
+                        <a class="dropdown-item fw-bold" href="#"><span class="fas fa-envelope-open-text"></span>{% trans "Tin nhắn" %}</a>
+                        <a class="dropdown-item fw-bold" href="#"><span class="fas fa-user-shield"></span>{% trans "Hỗ trợ" %}</a>
                         <div role="separator" class="dropdown-divider my-0"></div>
                         <a class="dropdown-item rounded-bottom fw-bold" href="/logout/">
-                            <span class="fas fa-sign-out-alt text-danger"></span>{% trans "Logout" %}</a>
+                            <span class="fas fa-sign-out-alt text-danger"></span>{% trans "Đăng xuất" %}</a>
                     </div>
                 </li>
             </ul>
