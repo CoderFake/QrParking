@@ -30686,6 +30686,22 @@ label {
 
 .dataTables_wrapper .dataTables_paginate {
     padding-right: 1.5rem;
+    text-align: right;
+
+}
+
+.dataTables_wrapper .dataTables_paginate a{
+    padding: 0 1rem;
+    margin: 2px;
+    text-align: center;
+    color: #fff;
+    background-color: #262b40;
+    border-radius: 5px;
+
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current{
+    background-color: var(--bs-gray-500);
 }
 
 .dataTables_wrapper .dataTables_length label {

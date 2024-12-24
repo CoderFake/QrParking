@@ -1,0 +1,178 @@
+{% extends 'webapp/layouts/base.html' %}
+{% load static humanize %}
+{% load webapp_tags %}
+{% load i18n %}
+
+{% block title %} Lịch sử giao dịch {% endblock %}
+
+{% block stylesheets %}
+    <link type="text/css" rel="stylesheet" href="{% static 'webapp/assets/css/payment.css' %}">
+{% endblock stylesheets %}
+
+{% block content %}
+    <main class="container-fluid h-100">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-dismissible d-none" role="alert">
+                    <div class="message-tag">{{ message.tags }}</div>
+                    <div class="message">{{ message }}</div>
+                </div>
+            {% endfor %}
+        {% endif %}
+        <h1 class="mb-4">Lịch sử giao dịch</h1>
+        <ul class="nav nav-tabs" id="transactionTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if tab == 'all' %}active{% endif %}" id="all-tab" data-bs-toggle="tab"
+                        data-bs-target="#all" type="button" role="tab" aria-controls="all"
+                        aria-selected="{% if tab == 'all' %}true{% else %}false{% endif %}">Tất cả
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if tab == 'parking' %}active{% endif %}" id="parking-tab"
+                        data-bs-toggle="tab" data-bs-target="#parking" type="button" role="tab" aria-controls="parking"
+                        aria-selected="{% if tab == 'parking' %}true{% else %}false{% endif %}">Ra vào bãi đỗ
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link {% if tab == 'ticket' %}active{% endif %}" id="ticket-tab" data-bs-toggle="tab"
+                        data-bs-target="#ticket" type="button" role="tab" aria-controls="ticket"
+                        aria-selected="{% if tab == 'ticket' %}true{% else %}false{% endif %}">Mua vé
+                </button>
+            </li>
+        </ul>
+        <div class="tab-content" id="transactionTabsContent">
+            <div class="tab-pane fade {% if tab == 'all' %}show active{% endif %}" id="all" role="tabpanel"
+                 aria-labelledby="all-tab">
+                <table class="table mt-3" id="all-table" data-sort="table" data-sort-order="desc"
+                       data-sort-key="created_at">
+                    <thead>
+                    <tr>
+                        <th class="text-start font-weight-bold">Mã giao dịch</th>
+                        <th class="text-center font-weight-bold">Ngày</th>
+                        <th class="text-center font-weight-bold">Số tiền (VNĐ)</th>
+                        <th class="text-center font-weight-bold">Loại thanh toán</th>
+                        <th class="text-center font-weight-bold">Phương thức thanh toán</th>
+                        <th class="text-center font-weight-bold">Trạng thái</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% if transactions %}
+                        {% for tran in transactions %}
+                            <tr>
+                                <td>{{ tran.transaction_code }}</td>
+                                <td>{{ tran.created_at|date:"h:m:s - d/m/Y" }}</td>
+                                <td class="text-center">{{ tran.amount|format_money }}</td>
+                                <td class="text-center">{{ tran.get_type_display }}</td>
+                                <td class="text-center">{{ tran.get_method_display }}</td>
+                                <td class="text-center font-weight-bold {% if tran.status %} text-success {% else %} text-danger {% endif %}">
+                                    {% if tran.status %} Thành công {% else %} Thất bại {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade {% if tab == 'parking' %}show active{% endif %}" id="parking" role="tabpanel"
+                 aria-labelledby="parking-tab">
+                <table class="table mt-3" id="parking-table" data-sort="table" data-sort-order="desc"
+                       data-sort-key="created_at">
+                    <thead>
+                    <tr>
+                        <th class="text-start font-weight-bold">Mã giao dịch</th>
+                        <th class="text-center font-weight-bold">Ngày</th>
+                        <th class="text-center font-weight-bold">Số tiền (VNĐ)</th>
+                        <th class="text-center font-weight-bold">Loại thanh toán</th>
+                        <th class="text-center font-weight-bold">Phương thức thanh toán</th>
+                        <th class="text-center font-weight-bold">Trạng thái</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% if transactions %}
+                        {% for tran in transactions %}
+                            <tr>
+                                <td>{{ tran.transaction_code }}</td>
+                                <td>{{ tran.created_at|date:"h:m:s - d/m/Y" }}</td>
+                                <td class="text-center">{{ tran.amount|format_money }}</td>
+                                <td class="text-center">{{ tran.get_type_display }}</td>
+                                <td class="text-center">{{ tran.get_method_display }}</td>
+                                <td class="text-center font-weight-bold {% if tran.status %} text-success {% else %} text-danger {% endif %}">
+                                    {% if tran.status %} Thành công {% else %} Thất bại {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="tab-pane fade {% if tab == 'ticket' %}show active{% endif %}" id="ticket" role="tabpanel"
+                 aria-labelledby="ticket-tab">
+                <table class="table mt-3" id="ticket-table" data-sort="table" data-sort-order="desc"
+                       data-sort-key="created_at">
+                    <thead>
+                    <tr>
+                        <th class="text-start font-weight-bold">Mã giao dịch</th>
+                        <th class="text-center font-weight-bold">Ngày</th>
+                        <th class="text-center font-weight-bold">Số tiền (VNĐ)</th>
+                        <th class="text-center font-weight-bold">Loại thanh toán</th>
+                        <th class="text-center font-weight-bold">Phương thức thanh toán</th>
+                        <th class="text-center font-weight-bold">Trạng thái</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% if transactions %}
+                        {% for tran in transactions %}
+                            <tr>
+                                <td>{{ tran.transaction_code }}</td>
+                                <td>{{ tran.created_at|date:"h:m:s - d/m/Y" }}</td>
+                                <td class="text-center">{{ tran.amount|format_money }}</td>
+                                <td class="text-center">{{ tran.get_type_display }}</td>
+                                <td class="text-center">{{ tran.get_method_display }}</td>
+                                <td class="text-center font-weight-bold {% if tran.status %} text-success {% else %} text-danger {% endif %}">
+                                    {% if tran.status %} Thành công {% else %} Thất bại {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+{% endblock content %}
+
+{% block javascripts %}
+    <script type="text/javascript"
+            src="{% static 'webapp/assets/vendor/datatables.net/js/dataTables.min.js' %}"></script>
+    <script type="text/javascript"
+            src="{% static 'webapp/assets/vendor/datatables.net/js/datetime-moment.js' %}"></script>
+    <script>
+        $(document).ready(function () {
+            $.fn.dataTable.moment('h:m:s - d/m/YYYY');
+
+            $('#all-table, #parking-table, #ticket-table').DataTable({
+                "order": [[1, "asc"]],
+                "searching": false,
+                "paging": true,
+                "info": false,
+                "lengthChange": false,
+                "pageLength": 5,
+                "language": {
+                    "url": "{% static 'webapp/assets/vendor/datatables.net/languages/vi.json' %}"
+                },
+                "pagingType": "simple_numbers",
+                "dom": '<"top"i>rt<"bottom"lp><"clear">',
+            });
+
+            $('.alert-dismissible').each(function () {
+                createToast($(this).find('.message-tag').text(), $(this).find('.message').text());
+                $(this).remove();
+            });
+        });
+
+        $('.nav-item button').on('click', function () {
+            const tab = $(this).attr('aria-controls');
+            window.location.href = `?tab=${tab}`;
+        });
+    </script>
+{% endblock %}
