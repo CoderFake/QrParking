@@ -1,7 +1,7 @@
 {% extends "webapp/layouts/base.html" %}
 
 {% load static %}
-{% block title %} Profile {% endblock %}
+{% block title %} Cá nhân {% endblock %}
 
 {% block stylesheets %}
     <link type="text/css" href="{% static 'webapp/assets/css/profile.css' %}"
@@ -35,17 +35,17 @@
     {% endif %}
     <div class="container light-style flex-grow-1 h-100">
         <h4 class="font-weight-bold py-3 mb-4">
-            Account settings
+            Cài đặt tài khoản
         </h4>
         <div class="card overflow-hidden">
             <div class="row no-gutters row-bordered row-border-light custom-row mt-0">
                 <div class="col-md-12 pt-0">
                     <div class="list-group list-group-flush account-settings-links d-flex flex-row">
                         <a class="list-group-item list-group-item-action text center tab-general text-center"
-                           href="?tab=general">General</a>
+                           href="?tab=general">Chung</a>
                         {% if request.user.signin_method == "password" %}
                             <a class="list-group-item list-group-item-action tab-change-password text-center"
-                               href="?tab=change-password">Change password</a>
+                               href="?tab=change-password">Thay đổi mật khẩu</a>
                         {% endif %}
                     </div>
                 </div>
@@ -56,13 +56,13 @@
                                 <form id="profile-form" method="POST" enctype="multipart/form-data">
                                     {% csrf_token %}
                                     <div class="form-group">
-                                        <label for="username" class="form-label">Username</label>
+                                        <label for="username" class="form-label">Tên tài khoản</label>
                                         <input type="text" id="username" name="username" class="form-control mb-1"
                                                value="{% if request.user.username %} {{ request.user.username }}{% endif %}"
                                                 {% if request.user.signin_method != "password" %} readonly {% endif %}>
                                     </div>
                                     <div class="form-group">
-                                        <label for="phone" class="form-label">Phone</label>
+                                        <label for="phone" class="form-label">Điện thoại</label>
                                         <input type="text" id="phone" name="phone" class="form-control"
                                                value="{% if request.user.phone_number %}{{ request.user.phone_number}}{% endif %}">
                                     </div>
@@ -72,17 +72,17 @@
                                                value="{{ request.user.email }}" readonly>
                                     </div>
                                     <div class="form-group">
-                                        <label for="address" class="form-label">Address</label>
+                                        <label for="address" class="form-label">Địa chỉ</label>
                                         <input type="text" id="address" name="address" class="form-control mb-1"
                                                value="{% if request.user.address %}{{ request.user.address}}{% endif %}">
                                     </div>
                                     {% if request.user.signin_method == "password" %}
                                         <div class="form-group">
-                                            <label for="file" class="form-label">Profile Picture</label>
+                                            <label for="file" class="form-label">Ảnh</label>
                                             <input type="file" id="file" name="profile_picture" class="form-control">
                                         </div>
                                     {% endif %}
-                                    <button type="submit" class="btn btn-primary custom-btn">Save changes</button>
+                                    <button type="submit" class="btn btn-primary custom-btn">Lưu thay đổi</button>
                                 </form>
                             </div>
                             <div class="d-none d-lg-flex col-lg-3 align-items-center">
@@ -104,7 +104,7 @@
                             <form id="profile-form" method="POST" enctype="multipart/form-data">
                                 {% csrf_token %}
                                 <div class="form-group">
-                                    <label for="old-password" class="form-label">Old Password</label>
+                                    <label for="old-password" class="form-label">Mật khẩu cũ</label>
                                     <div class="input-group">
                                         <input type="password" id="old-password" name="old_password"
                                                class="form-control">
@@ -114,7 +114,7 @@
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label for="new-password" class="form-label">New Password</label>
+                                    <label for="new-password" class="form-label">Mật khẩu mới</label>
                                     <div class="input-group password-group">
                                         <input type="password" id="new-password" name="new_password"
                                                class="form-control">
@@ -128,7 +128,7 @@
                                 </div>
 
                                 <div class="form-group">
-                                    <label for="confirm-password" class="form-label">Confirm New Password</label>
+                                    <label for="confirm-password" class="form-label">Nhập lại mật khẩu mới</label>
                                     <div class="input-group confirm-password-group">
                                         <input type="password" id="confirm-password" name="confirm_password"
                                                class="form-control">
@@ -137,7 +137,7 @@
                                         </span>
                                     </div>
                                 </div>
-                                <button type="submit" class="btn btn-primary custom-btn">Save changes</button>
+                                <button type="submit" class="btn btn-primary custom-btn">Lưu thay đổi</button>
                             </form>
                         </div>
                     {% endif %}
