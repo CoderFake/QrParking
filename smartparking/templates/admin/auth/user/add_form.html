@@ -2,13 +2,13 @@
 {% load i18n static %}
 
 {% block extrastyle %}
-    <link rel="stylesheet" type="text/css" href="{% static "assets/css/forms.css" %}">
+    <link rel="stylesheet" type="text/css" href="{% static "adminapp/assets/css/forms.css" %}">
 {% endblock %}
 
 {% block form_top %}
     {% if not is_popup %}
-        <p>{% trans "First, enter a username and password. Then, you'll be able to edit more user options." %}</p>
+        <p>{% trans "Đầu tiên, nhập tên người dùng và mật khẩu. Sau đó, bạn có thể chỉnh sửa thêm tùy chọn người dùng." %}</p>
     {% else %}
-        <p>{% trans "Enter a username and password." %}</p>
+        <p>{% trans "Nhập email người dùng và mật khẩu" %}</p>
     {% endif %}
 {% endblock %}

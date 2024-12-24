@@ -78,9 +78,9 @@ class FirebaseLogin(APIView):
 
             user = authenticate(email=email, password=password)
             if not user:
-                return Response({"status": "error", "message": "Username or Password is incorrect!"}, status=404)
+                return Response({"status": "error", "message": "Email hoặc mật khẩu không đúng!"}, status=404)
             if user.status == "inactive":
-                return Response({"status": "warning", "message": "User account is inactive!"}, status=403)
+                return Response({"status": "warning", "message": "Tài khoản của bạn chưa được kích hoạt!"}, status=403)
 
             login(request, user, backend='account.authentication.FirebaseAuthentication')
             user.last_login = timezone.now()
@@ -89,7 +89,7 @@ class FirebaseLogin(APIView):
 
         id_token = request.data.get('idToken')
         if id_token == "":
-            return Response({"status": "error", "message": "No idToken provided."}, status=400)
+            return Response({"status": "error", "message": "Không thể xác minh tài khoản, vui lòng thử lại sau!"}, status=400)
 
         try:
             decoded_token = auth.verify_id_token(id_token, clock_skew_seconds=5)
@@ -102,7 +102,7 @@ class FirebaseLogin(APIView):
             try:
                 user = User.objects.get(login_id=login_id)
                 if user.status == "inactive":
-                    return Response({"status": "warning", "message": "User account is inactive."}, status=403)
+                    return Response({"status": "warning", "message": "Tài khoản của bạn chưa được kích hoạt"}, status=403)
 
                 user.signin_method = signin_method
                 user.save()
@@ -127,7 +127,7 @@ class FirebaseLogin(APIView):
 
                                 except Exception as e:
                                     logger.error(f"Error uploading profile picture: {e}")
-                                    return Response({"status": "error", "message": "Error uploading profile picture."},
+                                    return Response({"status": "error", "message": "Đã có lỗi xảy ra khi cập nhật ảnh"},
                                                     status=500)
 
                         extra_fields['status'] = "active"
@@ -141,11 +141,11 @@ class FirebaseLogin(APIView):
                 except IntegrityError as e:
                     logger.error(e)
                     return Response(
-                        {"status": "error", "message": "User creation failed due to data integrity issues."},
+                        {"status": "error", "message": "Tài khoản đã được đăng nhập bằng phưởng thức khác, vui lòng thử lại!"},
                         status=500)
                 except Exception as e:
                     logger.error(e)
-                    return Response({"status": "error", "message": f"An error occurred: {str(e)}"}, status=500)
+                    return Response({"status": "error", "message": f"Đã có lỗi xảy ra, vui lòng thử lại sau!"}, status=500)
 
             try:
                 login(request, user, backend='account.authentication.FirebaseAuthentication')
@@ -156,10 +156,10 @@ class FirebaseLogin(APIView):
 
         except auth.InvalidIdTokenError as e:
             logger.error(e)
-            return Response({"status": "error", "message": "Invalid token."}, status=401)
+            return Response({"status": "error", "message": "Xác minh tài khoản thất bại!"}, status=401)
         except Exception as e:
             logger.error(e)
-            return Response({"status": "error", "message": str(e)}, status=500)
+            return Response({"status": "error", "message": "Đã có lỗi xảy ra vui lòng thử lại sau!"}, status=500)
 
 
 def signup(request):
@@ -175,10 +175,10 @@ def signup(request):
             signin_method = decoded_token.get("firebase", {}).get("sign_in_provider", "")
 
             if email != decoded_token.get("email", ""):
-                return JsonResponse({"status": "error", "message": "Email does not match!"}, status=400)
+                return JsonResponse({"status": "error", "message": "Email không khớp!"}, status=400)
 
             if User.objects.filter(login_id=login_id).exists():
-                return JsonResponse({"status": "error", "message": "User already exists!"}, status=400)
+                return JsonResponse({"status": "error", "message": "Tài khoản đã tồn tại!"}, status=400)
             try:
                 with transaction.atomic():
                     extra_fields = {}
@@ -198,20 +198,20 @@ def signup(request):
                         **extra_fields
                     )
 
-                    messages.success(request, "User created successfully!")
+                    messages.success(request, "Tạo tài khoản thành công!")
                     if signin_method == "password":
                         send_email(request, user)
-                        messages.info(request, "Please verify your account via email!")
+                        messages.info(request, "Hãy xác minh tài khoản qua email của bạn!")
 
             except Exception as e:
                 logger.error(e)
-                return JsonResponse({"status": "error", "message": "Cannot create user!"}, status=400)
+                return JsonResponse({"status": "error", "message": "Không thể tạo tài khoản!"}, status=400)
 
             return JsonResponse({"status": "success"}, status=200)
 
         except Exception as e:
             logger.error(e)
-            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+            return JsonResponse({"status": "error", "message": "Đã có lỗi xảy ra vui lòng thử lại sau!"}, status=400)
 
     context = {
         'firebaseConfig': settings.FIREBASE_CONFIG
@@ -227,7 +227,7 @@ def send_email(request, user):
     verify_url = reverse('verify_email', kwargs={'uid': uid, 'token': token})
     verification_link = f"{current_site}{verify_url}"
 
-    mail_subject = "Activate your account"
+    mail_subject = "Kích hoạt tài khoản"
     parameters = {
         'name': user.username,
         'verification_link': verification_link,
@@ -260,7 +260,7 @@ def verify_email(request, uid, token):
         user = User.objects.get(pk=uid)
 
         if user.token != token:
-            messages.error(request, "Token does not match!")
+            messages.error(request, "Mã xác minh không khớp!")
             return redirect("login")
 
     except (TypeError, ValueError, OverflowError, User.DoesNotExist) as e:
@@ -274,9 +274,9 @@ def verify_email(request, uid, token):
         user.token = None
         user.save()
 
-        messages.success(request, 'Your email has been successfully verified!')
+        messages.success(request, 'Xác minh tài khoản thành công')
     else:
-        messages.success(request, 'The verification link is invalid or has expired!')
+        messages.success(request, 'Mã xác thực đã hết hạn, vui lòng nhập mã mới')
     return redirect('login')
 
 
@@ -318,14 +318,14 @@ def profile(request):
 
                 if phone and account.phone_number != phone:
                     if User.objects.filter(phone_number=phone).exclude(pk=account.pk).exists():
-                        messages.error(request, "Phone number already in use by another account.")
+                        messages.error(request, "Số điện thoại đã tồn tại!")
                     else:
                         account.phone_number = phone
                 if address and account.address != address:
                     account.address = address
 
                 account.save()
-                messages.success(request, 'Profile updated successfully!')
+                messages.success(request, 'Cập nhật thông tin thành công!')
 
                 base_url = reverse('profile')
                 query_string = urlencode({'tab': 'general'})
@@ -341,52 +341,52 @@ def profile(request):
                 confirm_password = request.POST.get('confirm_password', "")
 
                 if not password or not authenticate(email=request.user.email, password=password):
-                    messages.error(request, "Old password is incorrect!")
+                    messages.error(request, "Mật khẩu cũ không chính xác!")
                     return redirect(f"{base_url}?{query_string}")
 
                 if not new_password:
-                    messages.error(request, "New password cannot be blank.")
+                    messages.error(request, "Mật khẩu mới không được để trống!")
                     return redirect(f"{base_url}?{query_string}")
 
                 if password == new_password:
-                    messages.error(request, "New password cannot be the same as the old password.")
+                    messages.error(request, "Mật khẩu mới không được giống mật khẩu cũ")
                     return redirect(f"{base_url}?{query_string}")
 
                 if len(new_password) < 8:
-                    messages.error(request, "New password must be at least 8 characters long.")
+                    messages.error(request, "Mật khẩu mới phải chứa ít nhất 8 ký tự.")
                     return redirect(f"{base_url}?{query_string}")
 
                 if not any(char.islower() for char in new_password):
-                    messages.error(request, "New password must contain at least one lowercase letter.")
+                    messages.error(request, "Mật khẩu mới phải chứa ít nhất một chữ cái thường.")
                     return redirect(f"{base_url}?{query_string}")
 
                 if not any(char.isupper() for char in new_password):
-                    messages.error(request, "New password must contain at least one uppercase letter.")
+                    messages.error(request, "Mật khẩu mới phải chứa ít nhất một chữ cái hoa.")
                     return redirect(f"{base_url}?{query_string}")
 
                 if not any(char.isdigit() for char in new_password):
-                    messages.error(request, "New password must contain at least one digit.")
+                    messages.error(request, "Mật khẩu mới phải chứa ít nhất một chữ số.")
                     return redirect(f"{base_url}?{query_string}")
 
                 if not any(char in "@$!%*?&" for char in new_password):
-                    messages.error(request, "New password must contain at least one special character (@$!%*?&).")
+                    messages.error(request, "Mật khẩu mới phải chứa ít nhất một ký tự đặc biệt.")
                     return redirect(f"{base_url}?{query_string}")
 
                 if new_password != confirm_password:
-                    messages.error(request, "New password doesn't match the confirmation password.")
+                    messages.error(request, "Mật khẩu xác nhận không khớp!")
                     return redirect(f"{base_url}?{query_string}")
 
                 account.set_password(new_password)
                 account.save()
 
-                messages.success(request, "Password has been changed successfully!")
+                messages.success(request, "Đổi mật khẩu thành công!")
                 return redirect(f"{base_url}?{query_string}")
 
             return HttpResponse(content="NOT FOUND", status=404)
 
     except User.DoesNotExist as e:
         logger.error(e)
-        return HttpResponse({"status": "error", "message": "User does not exist!"}, status=404)
+        return HttpResponse({"status": "error", "message": "Tài khoản không tồn tại!"}, status=404)
 
     context = {
         "account": account,
@@ -473,7 +473,7 @@ def get_qrcode(request):
 
             if (timezone.now() - user_qrcode.rendered_at).total_seconds() > 600:
                 if not QrCode.verify_otp(user_qrcode, otp_key):
-                    return JsonResponse({"status": "error", "message": "OTP verification is invalid!"}, status=400)
+                    return JsonResponse({"status": "error", "message": "OTP không đúng!"}, status=400)
 
             if request.POST.get("type"):
                 if request.POST.get("type") == "new_qr":
@@ -494,7 +494,7 @@ def get_qrcode(request):
                             delete_success = s3_delete(user_qrcode.key_image)
                             if not delete_success:
                                 return JsonResponse(
-                                    {"status": "error", "message": "An error occurred while deleting the old QR code."},
+                                    {"status": "error", "message": "Đã có lỗi xảy ra khi xoá QR cũ!"},
                                     status=400)
 
                         content = str(encrypt_data(str(data), key))
@@ -502,7 +502,7 @@ def get_qrcode(request):
 
                     except Exception as e:
                         logger.error(e)
-                        return JsonResponse({"status": "error", "messages": "An error occurred"}, status=400)
+                        return JsonResponse({"status": "error", "messages": "Đã có lỗi xảy ra, vui lòng thử lại sau!"}, status=400)
 
                     user_qrcode.key_image = s3_path
                     user_qrcode.key_code = str(key_code)
@@ -513,7 +513,7 @@ def get_qrcode(request):
 
                     image_url = get_presigned_url(settings.BUCKET_NAME, s3_path, expiration=600)
 
-                    messages.success(request, "New QR code generated successfully!")
+                    messages.success(request, "QR code mới đã được tạo!")
 
                     return JsonResponse({
                         "status": "success",
@@ -526,7 +526,7 @@ def get_qrcode(request):
                     return JsonResponse({"status": "success"}, status=200)
 
                 else:
-                    return JsonResponse({"status": "error", "message": "Invalid request!"}, status=400)
+                    return JsonResponse({"status": "error", "message": "Yêu cầu không hợp lệ!"}, status=400)
 
             else:
                 try:
@@ -535,7 +535,7 @@ def get_qrcode(request):
                     user_qrcode.save()
                 except Exception as e:
                     logger.error(e)
-                    return JsonResponse({"status": "error", "message": "An error occurred: " + str(e)}, status=400)
+                    return JsonResponse({"status": "error", "message": "Đã có lỗi xảy ra!"}, status=400)
 
                 return JsonResponse({"status": "success", "image_url": image_url}, status=200)
         elif request.method == "POST":
@@ -554,7 +554,7 @@ def get_qrcode(request):
 
             except Exception as e:
                 logger.error(e)
-                messages.error(request, f"Could not download the file: {str(e)}")
+                messages.error(request, f"Không thể tải xuống ảnh: {str(e)}")
                 redirect('qrcode')
 
     except QrCode.DoesNotExist:
@@ -592,7 +592,7 @@ def get_qrcode(request):
 
                     image_url = get_presigned_url(settings.BUCKET_NAME, s3_path, expiration=600)
 
-                    messages.success(request, "New QR code generated successfully!")
+                    messages.success(request, "QR code mới đã được tạo!")
 
                     return JsonResponse({
                         "status": "success",
@@ -601,9 +601,9 @@ def get_qrcode(request):
 
                 except Exception as e:
                     logger.error(e)
-                    return JsonResponse({"status": "error", "message": f"An error occurred: {str(e)}"}, status=400)
+                    return JsonResponse({"status": "error", "message": f"Đã có lỗi xảy ra, vui lòng thử lại sau!"}, status=400)
             else:
-                return JsonResponse({"status": "error", "message": "Invalid OTP!"}, status=400)
+                return JsonResponse({"status": "error", "message": "OTP không tồn tại!"}, status=400)
 
     user_qrcode = QrCode.objects.filter(user=request.user).first()
 

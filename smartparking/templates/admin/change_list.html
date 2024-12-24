@@ -6,7 +6,7 @@
     {{ block.super }}
     <link rel="stylesheet" type="text/css" href="{% static "admin/css/changelists.css" %}">
     {% if cl.formset %}
-        <link rel="stylesheet" type="text/css" href="{% static "assets/css/forms.css" %}">
+        <link rel="stylesheet" type="text/css" href="{% static "admin/css/forms.css" %}">
     {% endif %}
     {% if cl.formset or action_form %}
         <script type="text/javascript" src="{% url 'admin:jsi18n' %}"></script>
@@ -42,9 +42,9 @@
                             </a>
                         </li>
                         <li class="breadcrumb-item">
-                          <a href="{% url 'admin:app_list' cl.opts.app_config.label %}">
-                            {{ cl.opts.app_config.verbose_name }}
-                          </a>
+                            <a href="{% url 'admin:app_list' cl.opts.app_config.label %}">
+                                {{ cl.opts.app_config.verbose_name }}
+                            </a>
                         </li>
                         <li class="breadcrumb-item active"
                             aria-current="page">{{ cl.opts.verbose_name_plural|capfirst }}</li>
@@ -57,7 +57,7 @@
 {% endif %}
 
 {% block overlay %}
-  <div class="min-height-300 bg-primary position-absolute w-100"></div>
+    <div class="min-height-300 bg-primary position-absolute w-100"></div>
 {% endblock overlay %}
 
 {% block content %}
@@ -79,7 +79,23 @@
     </div>
 
     <div class="row mx-2">
-        <div class="{% if cl.has_filters %}col-md-10{% else %}col-md-12{% endif %}">
+        <div class="col-12">
+            {% if cl.has_filters %}
+                {% block filters %}
+                    <div class="card card-body filter_card border-0 shadow table-wrapper table-responsive">
+                        <div class="card-header filter_card_header pt-0 pb-0">
+                            <h5>{% trans 'Filter' %}</h5>
+                        </div>
+                        <div class="card-body d-flex flex-row gap-3 w-100 justify-content-center align-items-start">
+                            {% for spec in cl.filter_specs %}
+                                {% admin_list_filter cl spec %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endblock %}
+            {% endif %}
+        </div>
+        <div class="{% if cl.has_filters %}col-md-12 mt-3{% endif %}">
             {% block date_hierarchy %}
                 {% if cl.date_hierarchy %}{% date_hierarchy cl %}{% endif %}
             {% endblock %}
@@ -107,22 +123,6 @@
                     {% block pagination %}{% pagination cl %}{% endblock %}
                 </div>
             </form>
-        </div>
-        <div class="col-md-2">
-            {% if cl.has_filters %}
-                {% block filters %}
-                    <div class="card card-body border-0 shadow table-wrapper table-responsive">
-                        <div class="card-header filter_card_header">
-                            <h5>{% trans 'Filter' %}</h5>
-                        </div>
-                        <div class="card-body">
-                            {% for spec in cl.filter_specs %}
-                                {% admin_list_filter cl spec %}
-                            {% endfor %}
-                        </div>
-                    </div>
-                {% endblock %}
-            {% endif %}
         </div>
     </div>
 {% endblock %}

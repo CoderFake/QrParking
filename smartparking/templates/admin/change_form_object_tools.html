@@ -1,6 +1,6 @@
 {% load i18n static admin_urls %}
 {% block extrastyle %}
-    <link rel="stylesheet" type="text/css" href="{% static "assets/css/forms.css" %}">
+    <link rel="stylesheet" type="text/css" href="{% static "adminapp/assets/css/forms.css" %}">
 {% endblock %}
 {% block object-tools-items %}
     {% url opts|admin_urlname:'history' original.pk|admin_urlquote as history_url %}

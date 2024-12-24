@@ -1,10 +1,19 @@
 {% load static %}
-
+<script src="{% static 'webapp/assets/vendor/jquery/jquery.min.js' %}"></script>
 <script src="{% static "adminapp/assets/js/core/popper.min.js" %}"></script>
 <script src="{% static "adminapp/assets/js/core/bootstrap.min.js" %}"></script>
 <script src="{% static "adminapp/assets/js/plugins/perfect-scrollbar.min.js" %}"></script>
 <script src="{% static "adminapp/assets/js/plugins/smooth-scrollbar.min.js" %}"></script>
-
+{% block content %}
+    <script src="{% static "webapp/assets/js/toast.js" %}"></script>
+    {% if messages %}
+        {% for message in messages %}
+            <script>
+                createToast("{{ message.tags }}", "{{ message }}");
+            </script>
+        {% endfor %}
+    {% endif %}
+{% endblock %}
 <script>
     var win = navigator.platform.indexOf('Win') > -1;
     if (win && document.querySelector('#sidenav-scrollbar')) {

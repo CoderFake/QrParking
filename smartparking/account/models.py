@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
 from django.contrib.auth.hashers import make_password, check_password
@@ -10,10 +9,10 @@ import uuid
 class UserManager(BaseUserManager):
     def create_user(self, email, username, password=None, **extra_fields):
         if not email:
-            raise ValueError(_('The given email must be set'))
+            raise ValueError(_('Email không được để trống'))
 
         if not username:
-            raise ValueError(_('The given username must be set'))
+            raise ValueError(_('Username không được để trống'))
 
         email = self.normalize_email(email)
         user = self.model(
@@ -46,38 +45,36 @@ class UserManager(BaseUserManager):
 
 class User(AbstractUser, PermissionsMixin):
     id = models.UUIDField(max_length=40, primary_key=True, default=uuid.uuid4, editable=False)
-    username = models.CharField(max_length=150, unique=False, blank=False, null=False)
-    login_id = models.CharField(max_length=150, unique=True, blank=False, null=False)
-    email = models.EmailField(_("Email Address"), max_length=254, unique=True)
-    phone_number = models.CharField(_("Phone Number"), unique=True, max_length=100, blank=True, null=True)
-    signin_method = models.CharField(_("Signin Method"), max_length=100, blank=True, null=True)
-    address = models.TextField(_("Address"), blank=True, null=True)
-    picture_key = models.CharField(_("Picture Key"), max_length=254, blank=True, null=True)
+    username = models.CharField(max_length=150, unique=False, blank=False, null=False, verbose_name=_("Tên tài khoản"))
+    login_id = models.CharField(max_length=150, unique=True, blank=False, null=False, verbose_name=_("Mã đăng nhập"))
+    email = models.EmailField(verbose_name=_("Email"), max_length=254, unique=True)
+    phone_number = models.CharField(verbose_name=_("Số điện thoại"), unique=True, max_length=100, blank=True, null=True)
+    signin_method = models.CharField(verbose_name=_("Phương thức đăng nhập"), max_length=100, blank=True, null=True)
+    address = models.TextField(verbose_name=_("Địa chỉ"), blank=True, null=True)
+    picture_key = models.CharField(verbose_name=_("Ảnh"), max_length=254, blank=True, null=True)
     token = models.CharField(max_length=1000, blank=True, null=True)
     status = models.CharField(max_length=50, choices=[
-        ('inactive', 'Inactive'),
-        ('active', 'Active'),
-        ('block', 'Blocked'),
-        ('delete', 'Deleted'),
-    ], default='inactive')
-    is_staff = models.BooleanField(default=False)
-    is_superuser = models.BooleanField(default=False)
-    date_joined = models.DateTimeField(default=timezone.now)
+        ('inactive', 'Chưa kích hoạt'),
+        ('active', 'Kích hoạt'),
+        ('block', 'Bị khoá'),
+        ('delete', 'Đã bị xoá'),
+    ], default='inactive', verbose_name=_('Trạng thái'))
+    is_staff = models.BooleanField(default=False, verbose_name=_('Nhân viên'))
+    is_superuser = models.BooleanField(default=False, verbose_name=_('Quản trị viên'))
+    date_joined = models.DateTimeField(default=timezone.now, verbose_name=_('Ngày tạo'))
     balance = models.DecimalField(max_digits=20, decimal_places=2, default=0, blank=True, null=True)
 
     groups = models.ManyToManyField(
         'auth.Group',
         related_name='account_users',
         blank=True,
-        help_text=_('The groups this user belongs to. A user will get all permissions granted to each of their groups.'),
-        verbose_name=_('groups'),
+        verbose_name=_('Nhóm'),
     )
     user_permissions = models.ManyToManyField(
         'auth.Permission',
         related_name='account_user_permissions',
         blank=True,
-        help_text=_('Specific permissions for this user.'),
-        verbose_name=_('user permissions'),
+        verbose_name=_('Nhóm quyền tài khoản'),
     )
 
     objects = UserManager()
@@ -86,8 +83,8 @@ class User(AbstractUser, PermissionsMixin):
     REQUIRED_FIELDS = ['username']
 
     class Meta:
-        verbose_name = _('User')
-        verbose_name_plural = _('Users')
+        verbose_name = _('Quản lý tài khoản')
+        verbose_name_plural = _('Quản lý tài khoản')
 
     def __str__(self):
         return self.email
@@ -97,7 +94,7 @@ class User(AbstractUser, PermissionsMixin):
         if self.last_login:
             local_last_login = timezone.localtime(self.last_login)
             return local_last_login.strftime('%H:%M:%S %d-%m-%Y')
-        return _("Never logged in")
+        return _("Tài khoản chưa đăng nhập")
 
 
 class QrCode(models.Model):
@@ -121,4 +118,22 @@ class QrCode(models.Model):
         return check_password(input_otp, qr_code_instance.password_otp)
 
 
+class EmailNotification(models.Model):
+    class EmailCategory(models.TextChoices):
+        PARKING_LOT = 'parking_lot', _('Parking lot')
+        BALANCE_FLUCTUATION = 'balance_fluctuation', _('Balance Fluctuation')
+        TICKET_BILLING = 'ticket_billing', _('Ticket Billing')
 
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, related_name='user_email_notification', on_delete=models.CASCADE, null=True, blank=True)
+    category = models.CharField(max_length=50, choices=EmailCategory.choices, default=EmailCategory.PARKING_LOT)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _('Thông báo email')
+        verbose_name_plural = _('Thông báo email')
+
+    def __str__(self):
+        return self.category

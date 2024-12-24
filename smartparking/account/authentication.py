@@ -35,25 +35,25 @@ class FirebaseAuthentication(BaseAuthentication):
         try:
             decoded_token = auth.verify_id_token(id_token, clock_skew_seconds=5)
         except auth.ExpiredIdTokenError:
-            raise AuthenticationFailed('Token has expired')
+            raise AuthenticationFailed('Mã token đã hết hạn')
         except auth.InvalidIdTokenError:
-            raise AuthenticationFailed('Invalid token')
+            raise AuthenticationFailed('Mã token không hợp lệ')
         except Exception as e:
-            raise AuthenticationFailed(f'Authentication failed: {str(e)}')
+            raise AuthenticationFailed(f'Xác thực không thành công: {str(e)}')
 
         email = decoded_token.get('email')
         login_id = decoded_token.get('sub')
 
         if not email or not login_id:
-            raise AuthenticationFailed('Incomplete token data')
+            raise AuthenticationFailed('Mã token không hợp lệ')
 
         try:
             user = User.objects.get(email=email, login_id=login_id)
             if not user.is_active:
-                raise AuthenticationFailed('User account is inactive')
+                raise AuthenticationFailed('Tài khoản chưa được kích hoạt')
             request._cached_user = user
         except User.DoesNotExist:
-            raise AuthenticationFailed('No such user')
+            raise AuthenticationFailed('Không tồn tại tài khoản')
 
         return request._cached_user
 

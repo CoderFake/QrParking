@@ -17,8 +17,10 @@
         </div>
     </div>  
     {% endblock navigation %}
-        
-    {% block content %}{% endblock content %}
+
+    {% block content %}
+        <ul class="notifications"></ul>
+    {% endblock content %}
 
     {% include "includes/scripts.html" %}
     {% block extra_js %}{% endblock extra_js %}
