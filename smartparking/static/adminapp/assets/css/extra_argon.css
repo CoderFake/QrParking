@@ -1,0 +1,113 @@
+.tabular.inline-related input, .module.aligned input, .module.aligned textarea {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.4rem;
+    appearance: none;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid  #d2d6da;
+    border-radius: 0.5rem;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.tabular.inline-related input[type="checkbox"], .module.aligned input[type="checkbox"] {
+    --bs-form-check-bg: #fff;
+    flex-shrink: 0;
+    width: 1.23em;
+    height: 1.23em;
+    margin-left: 1.233em;
+    margin-top: 0.135em;
+    vertical-align: top;
+    appearance: none;
+    background-color: var(--bs-form-check-bg);
+    background-image: var(--bs-form-check-bg-image);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    border: 1px solid #090909;
+    print-color-adjust: exact;
+    transition: background-color 0.25s ease, border-color 0.25s ease, background-position 0.15s ease-in-out, opacity 0.15s ease-out, box-shadow 0.15s ease-in-out;
+}
+
+.tabular.inline-related label, .module.aligned label {
+    line-height: 2;
+    margin: 0;
+    font-weight: bold;
+}
+
+
+
+@media (prefers-reduced-motion: reduce) {
+  .form-check-input {
+    transition: none;
+  }
+}
+
+.form-check-input[type=checkbox] {
+  border-radius: 0.35rem;
+}
+
+.form-check-input[type=radio] {
+  border-radius: 50%;
+}
+
+.form-check-input:active {
+  filter: brightness(99%);
+}
+
+.form-check-input:focus {
+  border-color: transparent;
+  outline: 0;
+  box-shadow: none;
+}
+
+.form-check-input:checked {
+  background-color: transparent;
+  border-color: transparent;
+}
+
+.form-check-input:checked[type=checkbox] {
+  --bs-form-check-bg-image: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
+}
+
+.form-check-input:checked[type=radio] {
+  --bs-form-check-bg-image: linear-gradient(310deg, #5e72e4 0%, #825ee4 100%);
+}
+
+.tabular .delete div {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+}
+
+.tabular .inline-deletelink {
+    float: none;
+    background: url(static/adminapp/assets/img/inline-delete.svg) 0 0 no-repeat;
+    width: 16px;
+    height: 16px;
+    border: 0 none;
+    color: #970616;
+    font-weight: bold;
+    text-indent: 0;
+    margin-top: 10px;
+}
+
+.filter_card .card-body{
+    min-width: 400px;
+    overflow: hidden;
+}
+
+.filter_panel{
+    width: 100%;
+}
+
+.field-is_staff img, .field-is_superuser img{
+    width: 20px;
+    height: 20px;
+    display: block;
+    margin: 0 auto;
+}
