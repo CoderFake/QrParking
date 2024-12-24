@@ -2,14 +2,14 @@
 
 {% load static %}
 {% load i18n %}
-{% block title %} Qr Code {% endblock %}
+{% block title %} Mua vé {% endblock %}
 
 {% block stylesheets %}
     <link type="text/css" rel="stylesheet" href="{% static 'webapp/assets/css/payment.css' %}">
 {% endblock stylesheets %}
 
 {% block content %}
-    <main class="container-fluid p-0 h-100 d-flex justify-content-center align-items-start">
+    <main class="container-fluid p-0">
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-dismissible d-none" role="alert">
@@ -19,12 +19,12 @@
             {% endfor %}
         {% endif %}
 
-        <div class="container-fluid mt-3 p-2 pt-0 align-items-start">
-            <div class="row h-100">
-                <div class="col-12 col-md-6 d-flex justify-content-center justify-content-md-start align-items-center">
+        <div class="p-0 w-100 h-80 align-items-start">
+            <div class="row mt-5">
+                <div class="col-12 col-md-7 d-flex justify-content-center justify-content-md-start align-items-center">
                     <h2 class="m-0 text-primary text-uppercase">{{ description }}</h2>
                 </div>
-                <div class="col-12 col-md-6 d-flex justify-content-center justify-content-md-end align-items-center">
+                <div class="col-12 col-md-5 d-flex justify-content-center justify-content-md-end align-items-center mb-2">
                     <div class="border-0 rounded-3 bg-white d-flex
                         {% if type != "daily-ticket" %}
                             justify-content-end
@@ -34,9 +34,9 @@
                         <a href="?query={% if type == "daily-ticket" %}month-ticket{% else %}daily-ticket{% endif %}"
                            class="setting-button border-0 bg-warning rounded-3 w-50 h-100 text-white text-center align-content-center">
                             {% if type == "daily-ticket" %}
-                                daily ticket
+                                Vé ngày
                             {% else %}
-                                month ticket
+                                Vé tháng
                             {% endif %}
                         </a>
                     </div>
@@ -47,20 +47,21 @@
                 <section class="vh-100 gradient-custom-2">
                     <div class="container py-5 h-100">
                         <div class="row d-flex justify-content-center align-items-center h-100">
-                            <form class="col-md-10 col-lg-8 col-xl-6" method="POST" action="{% url 'ticket_payment' %}">
+                            <form class="col-md-10 col-lg-8 col-xl-6" method="POST" action="{% url 'payment_index' %}">
                                 {% csrf_token %}
                                 <div class="card card-stepper" style="border-radius: 16px;">
                                     <div class="card-header p-4">
                                         <div class="d-flex justify-content-between align-items-center">
                                             <div>
-                                                <p class="text-muted mb-2"> Order ID <span
+                                                <p class="text-muted mb-2">Mã đơn hàng: <span
                                                         class="fw-bold text-body">{{ order_id }}</span>
                                                 </p>
-                                                <p class="text-muted mb-0"> Place On <span
-                                                        class="fw-bold text-body">{% now "d, F Y" %}</span></p>
+                                                <p class="text-muted mb-0">Thời gian: <span
+                                                        class="fw-bold text-body">{% now "d/m/Y" %}</span></p>
+                                                <input class="d-none" name="order_id" value="{{ order_id }}">
                                             </div>
                                             <div>
-                                                <h6 class="mb-0"><a href="#">Parking ticket</a></h6>
+                                                <h6 class="mb-0"><a href="">Vé ngày</a></h6>
                                             </div>
                                         </div>
                                     </div>
@@ -68,19 +69,20 @@
                                         <div class="d-flex flex-row mb-4 pb-2">
                                             <div class="flex-fill">
                                                 <h5 class="bold">{{ description }}</h5>
-                                                <p class="text-muted"> Qt: 1 item</p>
-                                                <div class="form-group">
-                                                    <label class="form-label" for="price">Select denomination</label>
-                                                    <select class="form-control" name="price" id="price">
-                                                        <option value="">-- Select --</option>
-                                                        <option value="10000">10,000 VND</option>
-                                                        <option value="20000">20,000 VND</option>
-                                                        <option value="50000">50,000 VND</option>
-                                                        <option value="100000">100,000 VND</option>
-                                                        <option value="200000">200,000 VND</option>
-                                                        <option value="500000">500,000 VND</option>
+                                                <div class="form-group mt-3">
+                                                    <label class="form-label" for="vehicle-type">Chọn phương
+                                                        tiện</label>
+                                                    <select class="form-control" name="vehicle_type" id="vehicle-type">
+                                                        <option value="bike">Xe máy / Xe đạp</option>
+                                                        <option value="car">Ô tô</option>
                                                     </select>
                                                     <input class="d-none" name="type" value="daily-ticket">
+                                                </div>
+                                                <div class="form-group mt-3">
+                                                    <label class="form-label" for="price">Chọn mệnh giá vé </label>
+                                                    <select class="form-control" name="price" id="price">
+                                                        <option value="">-- Chọn --</option>
+                                                    </select>
                                                 </div>
                                             </div>
                                             <div>
@@ -93,7 +95,8 @@
                                     <div class="card-footer p-4">
                                         <div class="d-flex justify-content-center">
                                             <button type="submit"
-                                                    class="fw-normal mb-0 pl-3 pr-3 btn btn-primary rounder-3">Pay
+                                                    class="fw-normal mb-0 pl-3 pr-3 btn btn-primary rounder-3">Thanh
+                                                toán
                                             </button>
                                         </div>
                                     </div>
@@ -103,7 +106,82 @@
                     </div>
                 </section>
             {% else %}
-
+                <section class="vh-100 gradient-custom-2">
+                    <div class="container py-5 h-100">
+                        <div class="row d-flex justify-content-center align-items-center h-100">
+                            <form class="col-md-10 col-lg-8 col-xl-6" method="POST" action="{% url 'ticket_payment' %}">
+                                {% csrf_token %}
+                                <div class="card card-stepper" style="border-radius: 16px;">
+                                    <div class="card-header p-4">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <p class="text-muted mb-2">Mã đơn hàng: <span
+                                                        class="fw-bold text-body">{{ order_id }}</span>
+                                                </p>
+                                                <p class="text-muted mb-0">Thời gian: <span
+                                                        class="fw-bold text-body">{% now "d/m/Y" %}</span></p>
+                                                <input class="d-none" name="order_id" value="{{ order_id }}">
+                                            </div>
+                                            <div>
+                                                <h6 class="mb-0"><a href="">Vé tháng</a></h6>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-4">
+                                        <div class="d-flex flex-row mb-4 pb-2">
+                                            <div class="flex-fill">
+                                                <h5 class="bold">{{ description }}</h5>
+                                                <div class="form-group mt-3">
+                                                    <label class="form-label" for="parking-name">Chọn bãi đỗ xe</label>
+                                                    <select class="form-control" name="parking_name" id="parking-name">
+                                                        {% for parking_name in parking_names %}
+                                                            <option value="{{ parking_name }}">{{ parking_name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                    <input class="d-none" name="type" value="month-ticket">
+                                                </div>
+                                                <div class="form-group mt-3">
+                                                    <label class="form-label" for="vehicle-type">Chọn phương
+                                                        tiện</label>
+                                                    <select class="form-control" name="vehicle_type" id="vehicle-type">
+                                                        <option value="bike">Xe máy / Xe đạp</option>
+                                                        <option value="car">Ô tô</option>
+                                                    </select>
+                                                </div>
+                                                <div class="form-group mt-3">
+                                                    <label class="form-label" for="month">Chọn số tháng </label>
+                                                    <select class="form-control" name="month" id="month">
+                                                        {% for month in months %}
+                                                            <option value="{{ month }}">{{ month }} tháng</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="form-group mt-3">
+                                                    <label class="form-label" for="price">Giá vé</label>
+                                                    <input class="form-control" name="price" id="price"
+                                                           value="{{ init_price }} VNĐ">
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <img class="align-self-center img-fluid"
+                                                     src="{% static 'webapp/assets/img/ticket.png' %}"
+                                                     width="250">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer p-4">
+                                        <div class="d-flex justify-content-center">
+                                            <button type="submit"
+                                                    class="fw-normal mb-0 pl-3 pr-3 btn btn-primary rounder-3">Thanh
+                                                toán
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </section>
             {% endif %}
         </div>
     </main>
@@ -111,6 +189,87 @@
 {% endblock content %}
 
 {% block javascripts %}
+    {% if type == "daily-ticket" %}
+        <script>
+            $(document).ready(function () {
+                const options = {
+                    bike: [
+                        {value: "10000", text: "10,000 VNĐ"},
+                        {value: "20000", text: "20,000 VNĐ"},
+                        {value: "50000", text: "50,000 VNĐ"},
+                        {value: "100000", text: "100,000 VNĐ"},
+                        {value: "200000", text: "200,000 VNĐ"},
+                        {value: "500000", text: "500,000 VNĐ"}
+                    ],
+                    car: [
+                        {value: "20000", text: "20,000 VNĐ"},
+                        {value: "50000", text: "50,000 VNĐ"},
+                        {value: "100000", text: "100,000 VNĐ"},
+                        {value: "200000", text: "200,000 VNĐ"},
+                        {value: "500000", text: "500,000 VNĐ"},
+                        {value: "1000000", text: "1,000,000 VNĐ"}
+                    ]
+                };
+
+                function updatePriceOptions(vehicleType) {
+                    const priceSelect = $("#price");
+                    priceSelect.empty();
+                    priceSelect.append('<option value="">-- Chọn --</option>');
+                    if (options[vehicleType]) {
+                        options[vehicleType].forEach(option => {
+                            priceSelect.append(
+                                `<option value="${option.value}">${option.text}</option>`
+                            );
+                        });
+                    }
+                }
+
+                $("#vehicle_type").change(function () {
+                    const selectedVehicle = $(this).val();
+                    updatePriceOptions(selectedVehicle);
+                });
+
+                updatePriceOptions("bike");
+            });
+
+        </script>
+    {% else %}
+        <script>
+            $(document).ready(function () {
+                function getPrice(month, vehicleType) {
+                    const parkingName = $("#parking-name").val();
+                    $.ajax({
+                        url: "{% url 'get_month_ticket_price' %}",
+                        type: "GET",
+                        data: {
+                            "vehicle_type": vehicleType,
+                            "parking_name": parkingName
+                        },
+                        success: function (data) {
+                            $("#price").val(data.price * month + " VNĐ");
+                        },
+                        error: function (error) {
+                            createToast("error", "Có lỗi xảy ra khi lấy giá vé!");
+                        }
+                    });
+                }
+
+                $("#vehicle-type").change(function () {
+                    const selectedVehicle = $(this).val();
+                    const selectMonth = $("#month").val();
+                    getPrice(selectMonth, selectedVehicle);
+                });
+
+                $("#month").change(function () {
+                    const selectedVehicle = $("#vehicle-type").val();
+                    const selectMonth = $(this).val();
+                    getPrice(selectMonth, selectedVehicle);
+                });
+            });
+
+        </script>
+    {% endif %}
+
     <script>
         $(document).ready(function () {
             $('.alert-dismissible').each(function () {
