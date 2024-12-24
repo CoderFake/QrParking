@@ -46,6 +46,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
+    "widget_tweaks",
     "django.contrib.sites",
     "rest_framework",
     "corsheaders",
@@ -103,7 +105,7 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
-"django.contrib.auth.context_processors.auth",
+                "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "webapp.context_processors.balance",
                 "webapp.context_processors.base_url",
@@ -223,13 +225,17 @@ FIREBASE_CREDENTIALS = {
     "project_id": os.getenv("FIREBASE_PROJECT_ID"),
     "private_key_id": os.getenv("FIREBASE_PRIVATE_KEY_ID"),
     "private_key": os.getenv("FIREBASE_PRIVATE_KEY"),
-"client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
+    "client_email": os.getenv("FIREBASE_CLIENT_EMAIL"),
     "client_id": os.getenv("FIREBASE_CLIENT_ID"),
     "auth_uri": os.getenv("FIREBASE_AUTH_URI"),
     "token_uri": os.getenv("FIREBASE_TOKEN_URI"),
     "auth_provider_x509_cert_url": os.getenv("FIREBASE_AUTH_PROVIDER_X509_CERT_URL"),
     "client_x509_cert_url": os.getenv("FIREBASE_CLIENT_X509_CERT_URL"),
 }
+
+
+DJANGO_SUPERUSER_EMAIL = os.getenv("DJANGO_SUPERUSER_EMAIL")
+DJANGO_SUPERUSER_USERNAME = os.getenv("DJANGO_SUPERUSER_USERNAME")
 
 
 MESSAGE_TAGS = {
