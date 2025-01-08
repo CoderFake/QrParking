@@ -6,6 +6,9 @@ from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings
 from smartparking.ext.firebase.base import FirebaseAuthSettings, FirebaseAdminSettings
 from smartparking.ext.storage.base import StorageSettings
+from smartparking.ext.otp.base import OTPSetting
+from smartparking.ext.AES.base import AESSettings
+
 
 
 class ApplicationSettings(BaseSettings):
@@ -21,9 +24,14 @@ class ApplicationSettings(BaseSettings):
         root: str = Field(description="Root directory.")
         path: str = Field(description="URL path.")
 
-    class Eprint(BaseModel):
-        url: str = Field()
-        sid: str = Field()
+    class MQTTSettings(BaseModel):
+        broker_url: str = Field(description="MQTT broker URL.")
+        broker_port: int = Field(default=1883, description="MQTT broker port.")
+        username: Optional[str] = Field(default=None, description="MQTT username.")
+        password: Optional[str] = Field(default=None, description="MQTT password.")
+        client_id: str = Field(default="fastapi_mqtt_client", description="MQTT client ID.")
+        route: Optional[str] = Field(default=None, description="MQTT topic route.")
+        base_url: Optional[str] = Field(default=None, description="Base URL for forwarding messages.")
 
     class DocumentAuth(BaseModel):
         enabled: bool = Field(description="Whether to perform document delivery.")
@@ -38,7 +46,10 @@ class ApplicationSettings(BaseSettings):
     static: Optional[Static] = Field(default=None)
     db: DB
     docs: DocumentAuth
+    aes: AESSettings
+    mqtt: MQTTSettings
     storage: StorageSettings
+    otp: OTPSetting
     firebase: Union[FirebaseAuthSettings, FirebaseAdminSettings]
 
     def dump(self) -> str:
