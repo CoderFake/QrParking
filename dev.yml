@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  admin:
+  web:
     build:
       context: ./smartparking
       dockerfile: Dockerfile
@@ -10,6 +10,8 @@ services:
       - ENVIRONMENT=dev
     ports:
       - "${ADMIN_PORT}:8000"
+    volumes:
+      - ./smartparking/staticfiles:/home/QrParking/smartparking/staticfiles:rw
     depends_on:
       - db
     command: >
@@ -17,7 +19,7 @@ services:
         python manage.py makemigrations &&
         python manage.py migrate &&
         python manage.py collectstatic --noinput --no-post-process &&
-        chown -R www-data:www-data /home/QrParking/smartparking/staticfiles &&
+        chmod -R u+w /home/QrParking/smartparking/staticfiles &&
         python create_superuser_and_site.py &&
         python manage.py runserver 0.0.0.0:8000
       "
