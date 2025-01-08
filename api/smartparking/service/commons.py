@@ -1,7 +1,7 @@
 from datetime import datetime, date, timedelta, timezone
 from dataclasses import dataclass
 from typing import Any, Optional
-from sqlalchemy import select, insert, update, delete, func
+from sqlalchemy import select, insert, update, delete, func, and_
 from sqlalchemy.orm import aliased, contains_eager
 from smartparking.resources import context as r
 import smartparking.model.db as m
