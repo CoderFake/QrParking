@@ -29,6 +29,7 @@ httplib2==0.22.0
 idna==3.10
 jmespath==1.0.1
 msgpack==1.1.0
+paho-mqtt==2.1.0
 payos==0.1.4
 pillow==11.0.0
 proto-plus==1.24.0
