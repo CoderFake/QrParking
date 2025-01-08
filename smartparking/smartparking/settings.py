@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "account",
     "payment",
     "vehicle",
+    "mqtt",
 ]
 
 
@@ -174,10 +175,10 @@ LOCALE_PATHS = [
     os.path.join(BASE_DIR, "locale"),
 ]
 
+USE_TZ = True
+
 TIME_ZONE = "Asia/Ho_Chi_Minh"
 
-
-USE_TZ = True
 
 SITE_ID = int(os.environ.get("SITE_ID"))
 SITE_DOMAIN = os.environ.get("SITE_DOMAIN")
@@ -236,6 +237,13 @@ FIREBASE_CREDENTIALS = {
 
 DJANGO_SUPERUSER_EMAIL = os.getenv("DJANGO_SUPERUSER_EMAIL")
 DJANGO_SUPERUSER_USERNAME = os.getenv("DJANGO_SUPERUSER_USERNAME")
+
+
+MQTT_BROKER = os.getenv("MQTT_BROKER")
+MQTT_PORT = int(os.getenv("MQTT_PORT"))
+MQTT_USERNAME = os.getenv("MQTT_USERNAME")
+MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
+MQTT_CLIENT_ID = os.getenv("MQTT_CLIENT_ID")
 
 
 MESSAGE_TAGS = {
