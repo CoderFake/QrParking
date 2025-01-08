@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  admin:
+  web:
     build:
       context: ./smartparking
       dockerfile: Dockerfile
@@ -12,6 +12,8 @@ services:
       - "${ADMIN_PORT}:8000"
     depends_on:
       - db
+    networks:
+      - qrparking_network
     volumes:
       - "./smartparking:/home/QrParking/smartparking"
       - "./smartparking/staticfiles:/home/QrParking/smartparking/staticfiles"
@@ -23,12 +25,15 @@ services:
       context: ./api
       dockerfile: Dockerfile
     image: "${PROJECT_NAME}:api"
-    ports:
-      - "${API_PORT}:8001"
     environment:
       - ENVIRONMENT=dev
+    ports:
+      - "${API_PORT}:8001"
     depends_on:
       - db
+      - mqtt
+    networks:
+      - qrparking_network
     restart: always
 
   db:
@@ -41,6 +46,8 @@ services:
       POSTGRES_PASSWORD: "${DB_PASSWORD}"
       PGDATA: "/var/lib/postgresql/data/${PROJECT_NAME}"
       POSTGRES_DB: "${DB_NAME}"
+    networks:
+      - qrparking_network
     volumes:
       - "db_volume:/var/lib/postgresql/data/${PROJECT_NAME}"
       - "./db/initdb.d/create-db.sh:/docker-entrypoint-initdb.d/create-db.sh"
@@ -56,6 +63,8 @@ services:
       POSTGRES_PASSWORD: "${DB_PASSWORD}"
       PGDATA: "/var/lib/postgresql/data/${PROJECT_NAME}_stg"
       POSTGRES_DB: "${DB_NAME}_stg"
+    networks:
+      - qrparking_network
     volumes:
       - "db_stg_volume:/var/lib/postgresql/data/${PROJECT_NAME}_stg"
       - "./db/initdb.d/create-db.sh:/docker-entrypoint-initdb.d/create-db.sh"
@@ -78,8 +87,16 @@ services:
       /bin/sh -c "
       if [ ! -f /mosquitto/config/password.txt ]; then 
         mosquitto_passwd -c -b /mosquitto/config/password.txt ${MQTT_USERNAME} ${MQTT_PASSWORD}; 
+        chmod 0700 /mosquitto/config/password.txt; 
+        chown root:root /mosquitto/config/password.txt; 
       fi && mosquitto -c /mosquitto/config/mosquitto.conf"
+    networks:
+      - qrparking_network
     restart: always
+
+networks:
+  qrparking_network:
+    driver: bridge
 
 volumes:
   db_volume:
