@@ -17,8 +17,8 @@ from payos import PaymentData, ItemData
 from django.urls import reverse
 from django.db import transaction
 from account.models import QrCode
-from adminapp.models import ParkingSettings, MonthTicketSettings
-from vehicle.models import Vehicle
+from adminapp.models import ParkingSettings, MonthTicketSettings, VehicleSettings
+from vehicle.models import Vehicle, VehicleTypes
 from .models import Transaction, Ticket, Order, TicketType
 from account.views import redirect_if_authenticated
 
@@ -172,6 +172,7 @@ def success(request):
         except Order.DoesNotExist:
             return HttpResponse(status=404)
 
+
         Transaction.objects.create(
             id=uuid4(),
             transaction_code=order_id,
@@ -183,24 +184,27 @@ def success(request):
         )
 
         user = request.user
-        user.balance += order.amount
+        if order.ticket_type == TicketType.DAILY_TICKET:
+            user.balance += order.amount
         user.save()
 
         try:
             ticket = Ticket.objects.get(
                 user=request.user,
+                vehicle=order.vehicle,
                 parking_setting=order.parking,
                 type=order.ticket_type
             )
             if order.ticket_type == TicketType.MONTHLY_TICKET:
                 expired_at = ticket.expired_at
-                if expired_at > timezone.now():
+                if expired_at and expired_at > timezone.now():
                     ticket.expired_at = expired_at + timezone.timedelta(days=30 * order.quantity)
                 else:
                     ticket.expired_at = timezone.now().replace(hour=23, minute=59, second=59) + timezone.timedelta(
                         days=30 * order.quantity)
             ticket.save()
         except Ticket.DoesNotExist:
+            # Tạo vé mới
             Ticket.objects.create(
                 id=uuid4(),
                 parking_setting=order.parking,
@@ -213,6 +217,12 @@ def success(request):
                 created_at=timezone.now()
             )
 
+        Ticket.objects.filter(
+            vehicle=order.vehicle,
+            user=request.user
+        ).exclude(type=order.ticket_type).delete()
+
+    messages.success(request, "Thanh toán thành công!")
     return redirect(f"{reverse('payment_history')}?tab=ticket")
 
 
@@ -263,6 +273,9 @@ class Checkout(APIView):
     template_name = 'webapp/payment/index.html'
 
     def get(self, request):
+        if not request.user.is_authenticated:
+            return redirect("login")
+
         order_id = int(str(timezone.now().strftime("%H%M%S%f")) + str(random.randint(10, 999)))
         request.session["order_id"] = order_id
         try:
@@ -385,16 +398,80 @@ def payment_history(request):
     context = {
         "tab": tab
     }
+
     if tab not in ["all", "parking", "ticket"]:
         return HttpResponse(status=404)
 
-    transactions = []
-    if tab == "all":
-        transactions = Transaction.objects.filter(user=request.user)
-    elif tab == "parking":
-        transactions = Transaction.objects.filter(user=request.user, order__isnull=True)
+
+    bike_vehicles = Vehicle.objects.filter(type=VehicleTypes.BIKE.value)
+    car_vehicles = Vehicle.objects.filter(type=VehicleTypes.CAR.value)
+
+    month_ticket_bike = Ticket.objects.filter(
+        user=request.user,
+        type=TicketType.MONTHLY_TICKET,
+        vehicle__in=bike_vehicles
+    ).first()
+
+    daily_ticket_bike = Ticket.objects.filter(
+        user=request.user,
+        type=TicketType.DAILY_TICKET,
+        vehicle__in=bike_vehicles
+    ).first()
+
+    month_ticket_car = Ticket.objects.filter(
+        user=request.user,
+        type=TicketType.MONTHLY_TICKET,
+        vehicle__in=car_vehicles
+    ).first()
+
+    daily_ticket_car = Ticket.objects.filter(
+        user=request.user,
+        type=TicketType.DAILY_TICKET,
+        vehicle__in=car_vehicles
+    ).first()
+
+    if month_ticket_bike:
+        if month_ticket_bike.expired_at > timezone.now():
+            text_month_bike = f"<h4 class='text-center text-success'> Vé tháng xe máy của bạn còn hạn đến {month_ticket_bike.expired_at.strftime('%d/%m/%Y %H:%M:%S')} </h4>"
+            if month_ticket_bike.expired_at - timezone.now() < timezone.timedelta(days=5):
+                text_month_bike = f"<h4 class='text-center text-danger'> Vé tháng xe máy của bạn còn { (month_ticket_bike.expired_at - timezone.now()).days } ngày nữa hết hạn.<br> Vui lòng mua vé để tránh ảnh hưởng ra vào bãi đỗ xe! </h4>"
+            context.update({
+                "expired_bike": month_ticket_bike.expired_at,
+                "text_month_bike": text_month_bike
+            })
+
+
+    if daily_ticket_bike:
+        daily_vehicle_bike = VehicleSettings.objects.filter(type=VehicleTypes.BIKE.value).first()
+        if daily_vehicle_bike and daily_vehicle_bike.night_price > request.user.balance:
+            text_day_bike = f"<h4 class='text-center text-danger'> Vé ngày xe máy của bạn sắp hết </h4>"
+            context.update({
+                "text_day_bike": text_day_bike
+            })
+
+    if month_ticket_car:
+        if month_ticket_car.expired_at > timezone.now():
+            text_month_car = f"<h4 class='text-center text-success'> Vé tháng ô tô của bạn còn hạn đến {month_ticket_car.expired_at.strftime('%d/%m/%Y %H:%M:%S')} </h4>"
+            if month_ticket_car.expired_at - timezone.now() < timezone.timedelta(days=5):
+                text_month_car = f"<h4 class='text-center text-danger'> Vé tháng ô tô của bạn còn { (month_ticket_car.expired_at - timezone.now()).days } ngày nữa hết hạn.<br> Vui lòng mua vé để tránh ảnh hưởng ra vào bãi đỗ xe! </h4>"
+            context.update({
+                "expired_car": month_ticket_car.expired_at,
+                "text_month_car": text_month_car
+            })
+
+    if daily_ticket_car:
+        daily_vehicle_car = VehicleSettings.objects.filter(type=VehicleTypes.CAR.value).first()
+        if daily_vehicle_car and daily_vehicle_car.night_price > request.user.balance:
+            text_day_car = f"<h4 class='text-center text-danger'> Vé ngày ô tô của bạn sắp hết </h4>"
+            context.update({
+                "text_day_car": text_day_car
+            })
+
+    transactions = Transaction.objects.filter(user=request.user)
+    if tab == "parking":
+        transactions = transactions.filter(order__isnull=True)
     elif tab == "ticket":
-        transactions = Transaction.objects.filter(user=request.user, order__isnull=False)
+        transactions = transactions.filter(order__isnull=False)
 
     context.update({
         "transactions": transactions
