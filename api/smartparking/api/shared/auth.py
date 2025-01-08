@@ -2,14 +2,23 @@ from dataclasses import dataclass
 from typing import Any, Optional, Generic, TypeVar, Dict
 from fastapi import Header, Depends, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-
+from fastapi import Header, HTTPException, status
+import os
+from smartparking.ext.otp.base import OTPSetting, OTP
 from smartparking.model.errors import Errors, Errorneous
 from smartparking.resources import context as r
 import smartparking.model.composite as c
 from .errors import abort, abort_with
+from smartparking.config import environment
 
 Me = TypeVar('Me')
-
+settings = environment().settings
+otp_setting = OTPSetting(
+    access=settings.otp.access,
+    secret=settings.otp.secret,
+    interval=settings.otp.interval,
+    digits=settings.otp.digits
+)
 
 @dataclass
 class Authorized(Generic[Me]):
@@ -82,3 +91,48 @@ class MaybeUser(Authorization[Optional[c.Me]]):
 with_token = WithToken()
 with_user = WithUser()
 maybe_user = MaybeUser()
+
+
+# ----------------------------------------------------------------
+
+
+class OTPAuth:
+    def __init__(self):
+
+        self.otp = OTP(otp_setting)
+
+    async def auth_with_otp(
+        self,
+        api_access_key: Optional[str] = Header(None),
+        api_access_token: Optional[str] = Header(None)
+    ):
+        if not api_access_key or not api_access_token:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing API access key or token"
+            )
+
+        if api_access_key != settings.otp.access:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid API access key"
+            )
+
+        is_valid = await self.otp.validate_otp(api_access_token)
+        if not is_valid:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired OTP"
+            )
+
+    async def auth_for_mqtt(self, api_access_key: str):
+
+        if not api_access_key:
+            raise ValueError("Missing API access key or token")
+
+        if api_access_key != settings.otp.access:
+            raise ValueError("Invalid API access key")
+
+
+
+otp_auth_instance = OTPAuth()
