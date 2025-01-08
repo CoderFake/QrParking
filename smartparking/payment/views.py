@@ -75,7 +75,6 @@ class OrderCreate(APIView):
             paymentData = PaymentData(
                 orderCode=timezone.now().strftime("%Y%m%d%H%M%S%f"), amount=body["price"],
                 description=body["description"],
-                \
                 items=[item], cancelUrl=body["cancelUrl"],
                 returnUrl=body["returnUrl"]
             )
