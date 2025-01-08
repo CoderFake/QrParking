@@ -51,7 +51,7 @@ if not firebase_admin._apps:
 def redirect_if_authenticated(view_func):
     def wrapper(request, *args, **kwargs):
         if not request.user.is_authenticated:
-            return redirect("index")
+            return redirect("login")
         return view_func(request, *args, **kwargs)
     return wrapper
 
@@ -336,7 +336,7 @@ def profile(request):
                 base_url = reverse('profile')
                 query_string = urlencode({'tab': 'change-password'})
 
-                password = request.POST.get('password', "")
+                password = request.POST.get('old_password', "")
                 new_password = request.POST.get('new_password', "")
                 confirm_password = request.POST.get('confirm_password', "")
 
@@ -425,12 +425,11 @@ def encrypt_data(data, key):
 
 
 def qrcode_generate(content):
-
     qr = qrcode.QRCode(
         version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_L,
-        box_size=30,
-        border=4,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=2,
     )
 
     qr.add_data(content)
@@ -440,7 +439,7 @@ def qrcode_generate(content):
 
     buffer = BytesIO()
 
-    img = img.resize((900, 900), Image.Resampling.LANCZOS)
+    img = img.resize((450, 450), Image.Resampling.LANCZOS)
 
     img.save(buffer, format="PNG")
 
@@ -451,6 +450,7 @@ def qrcode_generate(content):
     s3_path = s3_save_file(buffer, file_name, file_extension)
 
     return file_name, s3_path
+
 
 
 def is_ajax(request):
