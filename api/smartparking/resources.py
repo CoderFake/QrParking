@@ -1,7 +1,6 @@
 import asyncio
 from contextvars import ContextVar, Token
 from dataclasses import dataclass, field
-import json
 import logging
 import sys
 from uuid import uuid4
@@ -62,15 +61,9 @@ class ResourceSession(Closeable):
         self._status = False
 
     async def close(self, exc: Optional[Exception]) -> None:
-        """
-        Close the resource session, committing or rolling back the transaction based on the status.
 
-        Args:
-            exc (Optional[Exception]): The exception that occurred, if any.
-        """
         status = self._status and exc is None
 
-        # Close resources. Only the DB session requires cleanup operations.
         try:
             if self.db.in_transaction():
                 if status:
@@ -92,12 +85,6 @@ class ResourceSession(Closeable):
 
     @property
     def auth(self) -> FirebaseAuth:
-        """
-        Retrieve the FirebaseAuth instance from the FirebaseAdmin if applicable.
-
-        Returns:
-            FirebaseAuth: The Firebase authentication instance.
-        """
         return self.firebase if isinstance(self.firebase, FirebaseAuth) else self.firebase.auth
 
 
@@ -105,17 +92,7 @@ _context = ContextVar[ResourceSession]('_context')
 
 
 async def configure(settings: ApplicationSettings, logger: logging.Logger) -> tuple[Resources, Callable]:
-    """
-    Configure the application resources, including the database engine, storage, and Firebase services.
 
-    Args:
-        settings (ApplicationSettings): The application settings.
-        logger (logging.Logger): The logger instance.
-
-    Returns:
-        tuple[Resources, Callable]: A tuple containing the Resources instance and a session-calling function.
-    """
-    # Create the asynchronous database engine
     engine = create_async_engine(
         settings.db.dsn,
         echo_pool=settings.db.echo_pool and "debug",
@@ -123,16 +100,16 @@ async def configure(settings: ApplicationSettings, logger: logging.Logger) -> tu
     if settings.db.echo:
         engine.echo = True
 
-    # Initialize storage based on the provided URL
     import smartparking.ext.storage.local
     import smartparking.ext.storage.s3
     storage = Storage.of(settings.storage.url)
     if storage is None:
         raise ValueError(f"Invalid URL for storage: {settings.storage.url}")
 
-    # Initialize Firebase services
-    firebase = FirebaseAuth(settings.firebase) if isinstance(settings.firebase,
-                                                             FirebaseAuthSettings) else FirebaseAdmin(settings.firebase)
+    firebase = FirebaseAuth(settings.firebase) if isinstance(
+        settings.firebase,
+        FirebaseAuthSettings
+    ) else FirebaseAdmin(settings.firebase)
 
     resources = Resources(
         db=engine,
@@ -143,15 +120,7 @@ async def configure(settings: ApplicationSettings, logger: logging.Logger) -> tu
 
     async def call_session(next: Callable[[ResourceSession], Awaitable[Any]]) -> Callable[
         [ResourceSession], Awaitable[Any]]:
-        """
-        Middleware to handle resource sessions within a context.
 
-        Args:
-            next (Callable[[ResourceSession], Awaitable[Any]]): The next callable in the middleware chain.
-
-        Returns:
-            Callable[[ResourceSession], Awaitable[Any]]: The wrapped callable.
-        """
         session = resources.open()
         token = _context.set(session)
         async with session:
@@ -168,9 +137,7 @@ async def configure(settings: ApplicationSettings, logger: logging.Logger) -> tu
 
 @dataclass
 class ContextualResources:
-    """
-    Context manager for handling resource sessions, supporting both synchronous and asynchronous contexts.
-    """
+
     cxt: ContextVar[ResourceSession]
     resources: Resources
     event_loop: Optional[asyncio.AbstractEventLoop]
@@ -178,16 +145,6 @@ class ContextualResources:
 
     @classmethod
     def of(cls, resources: Resources, event_loop: Optional[asyncio.AbstractEventLoop] = None) -> 'ContextualResources':
-        """
-        Factory method to create an instance of ContextualResources.
-
-        Args:
-            resources (Resources): The application resources.
-            event_loop (Optional[asyncio.AbstractEventLoop]): The event loop, if any.
-
-        Returns:
-            ContextualResources: The instantiated ContextualResources.
-        """
         return cls(_context, resources, event_loop)
 
     def __enter__(self) -> ResourceSession:
@@ -224,9 +181,6 @@ class ContextualResources:
 
 
 class ContextAccessor(Generic[T]):
-    """
-    Accessor for retrieving context variables.
-    """
 
     def __init__(self, cxt: ContextVar[T]) -> None:
         self.cxt = cxt
@@ -236,9 +190,7 @@ class ContextAccessor(Generic[T]):
 
 
 class Module(ModuleType):
-    """
-    Module accessor.
-    """
+
     accessor = ContextAccessor[ResourceSession](_context)
 
     @property
