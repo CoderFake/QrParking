@@ -52,8 +52,8 @@ class Transaction(models.Model):
         POINT = 'point', 'Điểm'
 
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    transaction_code = models.CharField(max_length=100, unique=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transaction_user')
+    transaction_code = models.CharField(max_length=100, unique=True, verbose_name='Mã giao dịch')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='transaction_user', verbose_name='Người dùng')
     order = models.OneToOneField(
         Order,
         on_delete=models.CASCADE,
@@ -61,15 +61,18 @@ class Transaction(models.Model):
         null=True,
         blank=True
     )
-    type = models.IntegerField(choices=TransactionType.choices)
-    method = models.CharField(max_length=50, choices=MethodTypes.choices, default=MethodTypes.PayOS)
-    amount = models.DecimalField(max_digits=10, decimal_places=0)
-    created_at = models.DateTimeField(default=timezone.now)
-    status = models.BooleanField(default=False)
+    type = models.IntegerField(choices=TransactionType.choices, verbose_name='Loại giao dịch')
+    method = models.CharField(max_length=50, choices=MethodTypes.choices, default=MethodTypes.PayOS, verbose_name='Phương thức thanh toán')
+    amount = models.DecimalField(max_digits=10, decimal_places=0, verbose_name='Số tiền')
+    created_at = models.DateTimeField(default=timezone.now, verbose_name='Thời gian tạo')
+    status = models.BooleanField(default=False, verbose_name='Trạng thái')
+
+    class Meta:
+        verbose_name = 'Quản lý giao dịch'
+        verbose_name_plural = 'Quản lý giao dịch'
 
 
 class Ticket(models.Model):
-
     id = UUIDField(primary_key=True, default=uuid4, editable=False)
     parking_setting = models.ForeignKey(
         'adminapp.ParkingSettings',
@@ -86,7 +89,7 @@ class Ticket(models.Model):
         null=True,
         blank=True
     )
-    vehicle = models.OneToOneField(
+    vehicle = models.ForeignKey(
         'vehicle.Vehicle',
         on_delete=models.CASCADE,
         related_name='ticket_vehicle',
@@ -96,5 +99,14 @@ class Ticket(models.Model):
     expired_at = models.DateTimeField(null=True, blank=True)
     type = models.IntegerField(choices=TicketType.choices)
     created_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['vehicle', 'type'],
+                name='unique_vehicle_ticket_type'
+            )
+        ]
+
 
 
