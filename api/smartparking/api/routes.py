@@ -7,7 +7,7 @@ from smartparking.model.errors import Errors
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 
-from .route.connect import data, me
+from .route.connect import data, me, mqtt
 from .route.internal import docs
 from .shared.errors import ValidationErrorResponse, errorModel, setup_handlers
 
@@ -35,6 +35,15 @@ def setup_api(app: FastAPI, env: Environment, logger: logging.Logger):
         prefix="/me",
         router=me.router,
         tags=["Me"],
+        responses={
+            401: {"model": authError, "description": "Authentication failed."},
+        },
+    )
+
+    router.include_router(
+        prefix="/mqtt",
+        router=mqtt.router,
+        tags=["Mqtt"],
         responses={
             401: {"model": authError, "description": "Authentication failed."},
         },
