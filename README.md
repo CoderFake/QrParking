@@ -5,16 +5,17 @@
 
 ## Overview
 - **Python Version:**  = 3.12
-- The configuration file is located at **SmartPaking/.env SmartPaking/admin.env and SmartPaking/api.env **.
+- The configuration file is located at `QrParking/.env` `QrParking/smartparking/.env.{name}` and `QrParking/api/config/.env.{name}`.
 - You can override environment-specific settings by placing a configuration file for the local environment in **.env files**.
     - **Note:** Do not commit this file.
+    - If you start with a developer role, you will create the following environment files: `QrParking/.env`, `QrParking/smartparking/.env.dev`, `QrParking/api/config/.env.dev`.
 
 ## Development Environment Setup
 
 ### Start the project with the following commands:
 
 	```bash
-	$ docker-compose up -d
+	$ docker-compose -f docker-compose.yml -f {name}.yml up -d
 ##### If you need to recreate the Docker image, for example, after adding libraries, stop the container, remove the original image, and restart.
 
 ##### Find the image ID of the smart_parking image from the image list obtained with docker image ls.
