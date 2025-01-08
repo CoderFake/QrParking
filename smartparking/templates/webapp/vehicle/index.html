@@ -1,0 +1,138 @@
+{% extends 'webapp/layouts/base.html' %}
+{% load static humanize %}
+{% load webapp_tags %}
+{% load i18n %}
+
+{% block title %} Lịch sử đỗ xe {% endblock %}
+
+{% block stylesheets %}
+    <link type="text/css" rel="stylesheet" href="{% static 'webapp/assets/css/payment.css' %}">
+{% endblock stylesheets %}
+
+{% block content %}
+    <main class="container-fluid h-100">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-dismissible d-none" role="alert">
+                    <div class="message-tag">{{ message.tags }}</div>
+                    <div class="message">{{ message }}</div>
+                </div>
+            {% endfor %}
+        {% endif %}
+        <h1 class="mb-4">Lịch sử đỗ xe</h1>
+
+        <table class="table mt-3" id="transaction-table">
+            <thead>
+            <tr>
+                <th class="text-start font-weight-bold">Thời gian vào</th>
+                <th class="text-center font-weight-bold">Thời gian ra</th>
+                <th class="text-center font-weight-bold">Số tiền (VNĐ)</th>
+                <th class="text-center font-weight-bold">Biển số xe</th>
+                <th class="text-center font-weight-bold">Loại xe</th>
+                <th class="text-center font-weight-bold">Hành động</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% if parking_histories %}
+                {% for history in parking_histories %}
+                    <tr>
+                        <td>{{ history.check_in|date:"h:m:s - d/m/Y" }}</td>
+                        <td class="text-center {% if not history.check_out %} text-success {% endif %}">
+                            {% if history.check_out %}{{ history.check_out|date:"h:m:s - d/m/Y" }}{% else %}
+                                Chưa rời{% endif %}</td>
+                        <td class="text-center">{% if not history.check_out %} 0 {% else %}3000 {% endif %}</td>
+                        <td class="text-center">{{ history.license_number }}</td>
+                        <td class="text-center">Xe máy / Xe đạp</td>
+                        <td class="text-center">
+                            <button class="btn btn-primary btn-sm view-details"
+                                    data-check-in="{{ history.image_check_in_url }}"
+                                    data-check-out="{{ history.image_check_out_url }}">
+                                Xem chi tiết
+                            </button>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+            </tbody>
+        </table>
+
+        <div class="row mt-4" id="image-preview" style="display: none; max-height: 400px;">
+            <div class="col-sm-6 mt-3 mt-sm-0">
+                <h5 class="text-center">Ảnh vào</h5>
+                 <div class="w-100 h-auto rounded-1 overflow-hidden">
+                    <img id="check-in-image" src="" alt="Ảnh vào" class="img-fluid">
+                 </div>
+            </div>
+            <div class="col-sm-6 mt-3 mt-sm-0">
+                <h5 class="text-center">Ảnh ra</h5>
+                <div class="w-100 h-auto rounded-1 overflow-hidden">
+                    <img id="check-out-image" src="" alt="Ảnh ra" class="img-fluid overflow-hidden">
+                </div>
+            </div>
+        </div>
+    </main>
+{% endblock content %}
+
+{% block javascripts %}
+    <script type="text/javascript"
+            src="{% static 'webapp/assets/vendor/datatables.net/js/dataTables.min.js' %}"></script>
+    <script type="text/javascript"
+            src="{% static 'webapp/assets/vendor/datatables.net/js/datetime-moment.js' %}"></script>
+    <script>
+        $(document).ready(function () {
+            $('#transaction-table').DataTable({
+                "order": [[0, "desc"]],
+                "searching": false,
+                "paging": true,
+                "info": false,
+                "lengthChange": false,
+                "pageLength": 5,
+                "language": {
+                    "url": "{% static 'webapp/assets/vendor/datatables.net/languages/vi.json' %}"
+                },
+                "pagingType": "simple_numbers",
+                "dom": '<"top"i>rt<"bottom"lp><"clear">',
+            });
+
+            $('#transaction-table tbody').on('click', 'tr', function () {
+                let checkInUrl = $(this).find('.view-details').data('check-in');
+                let checkOutUrl = $(this).find('.view-details').data('check-out');
+                console.log(checkInUrl, checkOutUrl);
+                if (checkInUrl === "None") {
+                   checkInUrl = null;
+                }
+                if (checkOutUrl === "None") {
+                   checkOutUrl = null;
+                }
+                showDetails(checkInUrl, checkOutUrl);
+            });
+
+            $('.view-details').on('click', function (e) {
+                e.stopPropagation();
+                let checkInUrl = $(this).data('check-in');
+                let checkOutUrl = $(this).data('check-out');
+                showDetails(checkInUrl, checkOutUrl);
+            });
+
+            function showDetails(checkInUrl, checkOutUrl) {
+
+                if (checkInUrl  || checkOutUrl) {
+                    $('#image-preview').show();
+                    $('#check-in-image').attr('src', checkInUrl || "/static/webapp/assets/img/sp-logo.png");
+                    $('#check-out-image').attr('src', checkOutUrl || "/static/webapp/assets/img/sp-logo.png");
+                } else {
+                    $('#image-preview').hide();
+                }
+            }
+        });
+
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('.alert-dismissible').each(function () {
+                createToast($(this).find('.message-tag').text(), $(this).find('.message').text());
+                $(this).remove();
+            });
+        });
+    </script>
+{% endblock %}
