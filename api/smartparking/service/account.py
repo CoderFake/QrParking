@@ -37,10 +37,9 @@ async def signup(login_id: str, name: str, email: str) -> Maybe[c.Me]:
             dict(
                 id=str(uuid4()),
                 login_id=login_id,
-                name=name,
+                username=name,
                 email=email,
-                created_at=now,
-                modified_at=now,
+                date_joined=now,
                 last_login=now,
             ),
         )
