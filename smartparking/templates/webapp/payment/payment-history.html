@@ -20,6 +20,37 @@
             {% endfor %}
         {% endif %}
         <h1 class="mb-4">Lịch sử giao dịch</h1>
+        <div class="col-12 mt-2 mb-3">
+            <!-- Thông báo vé tháng xe máy -->
+            {% if text_month_bike %}
+                <div class="alert alert-info text-center">
+                    {{ text_month_bike|safe }}
+                </div>
+            {% endif %}
+
+            <!-- Thông báo vé ngày xe máy -->
+            {% if text_day_bike %}
+                <div class="alert alert-warning text-center">
+                    {{ text_day_bike|safe }}
+                </div>
+            {% endif %}
+
+            <!-- Thông báo vé tháng ô tô -->
+            {% if text_month_car %}
+                <div class="alert alert-info text-center">
+                    {{ text_month_car|safe }}
+                </div>
+            {% endif %}
+
+            <!-- Thông báo vé ngày ô tô -->
+            {% if text_day_car %}
+                <div class="alert alert-warning text-center">
+                    {{ text_day_car|safe }}
+                </div>
+            {% endif %}
+            <p class="text-center text-md-right text-primary">Chú ý: Nếu bạn có 2 loại vé. Vé tháng sẽ được áp dụng trước vé ngày</p>
+        </div>
+
         <ul class="nav nav-tabs" id="transactionTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <button class="nav-link {% if tab == 'all' %}active{% endif %}" id="all-tab" data-bs-toggle="tab"
@@ -60,7 +91,9 @@
                         {% for tran in transactions %}
                             <tr>
                                 <td>{{ tran.transaction_code }}</td>
-                                <td>{{ tran.created_at|date:"h:m:s - d/m/Y" }}</td>
+                                <td data-order="{{ tran.created_at|date:'Y-m-d H:i:s' }}">
+                                    {{ tran.created_at|date:"h:m:s - d/m/Y" }}
+                                </td>
                                 <td class="text-center">{{ tran.amount|format_money }}</td>
                                 <td class="text-center">{{ tran.get_type_display }}</td>
                                 <td class="text-center">{{ tran.get_method_display }}</td>
@@ -92,7 +125,9 @@
                         {% for tran in transactions %}
                             <tr>
                                 <td>{{ tran.transaction_code }}</td>
-                                <td>{{ tran.created_at|date:"h:m:s - d/m/Y" }}</td>
+                                <td data-order="{{ tran.created_at|date:'Y-m-d H:i:s' }}">
+                                    {{ tran.created_at|date:"h:m:s - d/m/Y" }}
+                                </td>
                                 <td class="text-center">{{ tran.amount|format_money }}</td>
                                 <td class="text-center">{{ tran.get_type_display }}</td>
                                 <td class="text-center">{{ tran.get_method_display }}</td>
@@ -124,7 +159,9 @@
                         {% for tran in transactions %}
                             <tr>
                                 <td>{{ tran.transaction_code }}</td>
-                                <td>{{ tran.created_at|date:"h:m:s - d/m/Y" }}</td>
+                                <td data-order="{{ tran.created_at|date:'Y-m-d H:i:s' }}">
+                                    {{ tran.created_at|date:"h:m:s - d/m/Y" }}
+                                </td>
                                 <td class="text-center">{{ tran.amount|format_money }}</td>
                                 <td class="text-center">{{ tran.get_type_display }}</td>
                                 <td class="text-center">{{ tran.get_method_display }}</td>
@@ -151,7 +188,10 @@
             $.fn.dataTable.moment('h:m:s - d/m/YYYY');
 
             $('#all-table, #parking-table, #ticket-table').DataTable({
-                "order": [[1, "asc"]],
+                "order": [[1, "desc"]],
+                "columnDefs": [
+                    {"type": "datetime", "targets": 1}
+                ],
                 "searching": false,
                 "paging": true,
                 "info": false,
